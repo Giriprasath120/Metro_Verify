@@ -11,6 +11,7 @@ import { GovHeader } from '../../components/GovHeader';
 import { StatusBadge } from '../../components/StatusBadge';
 import { PassportTimeline } from '../../components/PassportTimeline';
 import { CertificateModal } from '../../components/CertificateModal';
+import { DigitalTwin3DView } from '../../components/DigitalTwin3DView';
 import { Instrument, mockCertificates, mockInstruments } from '../../../data/mockData';
 import { Colors } from '../../theme/colors';
 
@@ -44,11 +45,31 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
     loadPassport();
   }, [initialInstrument.id]);
 
-  const instrument = livePassport ? {
-    ...initialInstrument,
-    status: livePassport.status || initialInstrument.status,
-    passportTimeline: livePassport.timeline || initialInstrument.passportTimeline,
-  } : initialInstrument;
+  const instrument: Instrument = {
+    id: initialInstrument?.id || 'INST-TS-01',
+    model: initialInstrument?.model || 'Electronic Counter Scale',
+    category: initialInstrument?.category || 'Non-Automatic Weighing Instrument',
+    subCategory: initialInstrument?.subCategory || 'Digital Commercial Scale',
+    capacity: initialInstrument?.capacity || '50 kg',
+    accuracyClass: initialInstrument?.accuracyClass || 'Class III',
+    serialNumber: initialInstrument?.serialNumber || 'SN-2026-LM-01',
+    manufacturer: initialInstrument?.manufacturer || 'Certified Metrology Equipment',
+    location: initialInstrument?.location || 'Osmangunj Wholesale Market, Hyderabad',
+    district: initialInstrument?.district || 'Hyderabad',
+    state: initialInstrument?.state || 'Telangana',
+    expiryDate: initialInstrument?.expiryDate || initialInstrument?.scheduledDate || '2027-02-18',
+    status: livePassport?.status || initialInstrument?.status || 'Verified',
+    readings: initialInstrument?.readings || {
+      standardWeight: '20.000 kg',
+      indicatedValue: '20.002 kg',
+      errorMargin: '+2 g',
+      toleranceLimit: '±5 g (Class III)',
+      result: 'PASS' as const,
+    },
+    passportTimeline: livePassport?.timeline || initialInstrument?.passportTimeline || [],
+    ownerId: initialInstrument?.ownerId || 'OWN-101',
+    lastVerifiedDate: initialInstrument?.lastVerifiedDate || '2026-02-18',
+  };
 
   const matchedCertificate = (livePassport?.activeCertificate ? {
     id: livePassport.activeCertificate.id,
@@ -86,6 +107,9 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
         >
           <Text style={styles.backButtonText}>‹ Back to My Instruments</Text>
         </TouchableOpacity>
+
+        {/* 3D Digital Twin Representation */}
+        <DigitalTwin3DView instrument={instrument} />
 
         {/* Passport Header Card */}
         <View style={styles.passportCard}>
@@ -137,28 +161,6 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
               <Text style={styles.metaValHighlightDate}>{instrument.expiryDate}</Text>
             </View>
           </View>
-
-          {/* Certificate Action if available */}
-          {matchedCertificate ? (
-            <TouchableOpacity
-              style={styles.viewCertBtn}
-              onPress={() => setCertModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.viewCertIcon}>📜</Text>
-              <View style={styles.viewCertTextCol}>
-                <Text style={styles.viewCertTitle}>Digital Verification Certificate</Text>
-                <Text style={styles.viewCertSub}>No: {matchedCertificate.certificateNumber} • Tap to view certificate & QR</Text>
-              </View>
-              <Text style={styles.viewCertArrow}>›</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.noCertNotice}>
-              <Text style={styles.noCertText}>
-                ⚠️ Certificate will be issued upon successful field inspection.
-              </Text>
-            </View>
-          )}
         </View>
 
         {/* Measurement Readings Card (if verified / tested) */}
@@ -214,13 +216,6 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
           <PassportTimeline nodes={instrument.passportTimeline} />
         </View>
       </ScrollView>
-
-      {/* Certificate Modal */}
-      <CertificateModal
-        visible={certModalVisible}
-        certificate={matchedCertificate || null}
-        onClose={() => setCertModalVisible(false)}
-      />
     </SafeAreaView>
   );
 };
@@ -470,5 +465,36 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: 2,
     marginBottom: 12
+  },
+  certCtaButton: {
+    backgroundColor: '#0B2545',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#1E3A8A'
+  },
+  certCtaContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10
+  },
+  certCtaIcon: {
+    fontSize: 22
+  },
+  certCtaTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  certCtaSub: {
+    color: '#94A3B8',
+    fontSize: 10.5,
+    marginTop: 2
+  },
+  certCtaArrow: {
+    color: '#38BDF8',
+    fontSize: 12,
+    fontWeight: '700'
   }
 });

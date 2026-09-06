@@ -104,10 +104,12 @@ app.use('/api/schedule', scheduleRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Public verification short-link redirect for QR codes
-app.get('/verify/:id', (req, res) => {
-  res.redirect(`/api/certificates/${encodeURIComponent(req.params.id)}/verify`);
+app.get(['/verify', '/verify/:id'], (req, res) => {
+  const id = req.params.id || (req.query.id as string) || (req.query.certNo as string) || '';
+  res.redirect(`/api/certificates/verify?id=${encodeURIComponent(id)}`);
 });
 
 // Register legacy / backward-compatible routes
@@ -124,7 +126,7 @@ app.use('/notifications', notificationsRoutes);
 app.use('/chatbot', chatbotRoutes);
 
 // Start server with graceful EADDRINUSE error handling
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`====================================================`);
   console.log(` Metro Verify Server running on http://localhost:${PORT}`);
   console.log(` SIH26036 - Legal Metrology Platform Backend`);

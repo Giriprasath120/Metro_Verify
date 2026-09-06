@@ -217,13 +217,13 @@ function generateDomainFallback(
       const assignedOfficer = latestApp.assignments && latestApp.assignments[0]?.assignedOfficer;
       const officerStr = assignedOfficer ? `assigned to officer ${assignedOfficer.name} (${assignedOfficer.badgeNumber})` : 'awaiting officer slot allocation';
       const instName = latestApp.instrument?.model || 'your weighing equipment';
-      return `Namaste ${owner.name}! Your verification request #${latestApp.id} for "${instName}" is currently marked "${latestApp.status}". It is ${officerStr} for preferred date ${latestApp.preferredDate}.`;
+      return `Greetings ${owner.name}! Your verification request #${latestApp.id} for "${instName}" is currently marked "${latestApp.status}". It is ${officerStr} for preferred date ${latestApp.preferredDate}.`;
     }
     if (instruments.length > 0) {
       const inst = instruments[0];
-      return `Namaste ${owner.name}! Your registered equipment "${inst.model}" (${inst.id}) has status "${inst.status}". Its verification validity is ${inst.expiryDate || 'Active'}.`;
+      return `Greetings ${owner.name}! Your registered equipment "${inst.model}" (${inst.id}) has status "${inst.status}". Its verification validity is ${inst.expiryDate || 'Active'}.`;
     }
-    return `Namaste ${owner.name}! You currently have no active verification applications. You can submit one easily using the "New Request" tab in the bottom bar.`;
+    return `Greetings ${owner.name}! You currently have no active verification applications. You can submit one easily using the "New Request" tab in the bottom bar.`;
   }
 
   if (q.includes('expire') || q.includes('valid') || q.includes('due')) {
@@ -250,7 +250,7 @@ function generateDomainFallback(
   }
 
   if (q.includes('compliance') || q.includes('score') || q.includes('health')) {
-    return `Namaste ${owner.name}. Your current Compliance Health Score for "${owner.businessName}" is ${owner.complianceScore}/100. Maintaining timely re-verification ensures statutory Tier-A compliance under the Legal Metrology Act.`;
+    return `Greetings ${owner.name}. Your current Compliance Health Score for "${owner.businessName}" is ${owner.complianceScore}/100. Maintaining timely re-verification ensures statutory Tier-A compliance under the Legal Metrology Act.`;
   }
 
   if (q.includes('certificate') || q.includes('qr') || q.includes('download')) {
@@ -260,7 +260,7 @@ function generateDomainFallback(
     return `You have 0 active digital certificates on file. Once an LMO officer conducts your physical verification and approves the test, your official Form VI Certificate will appear here with an instant verification QR code.`;
   }
 
-  return `Namaste ${owner.name}! I am Metro Assistant for Metro Verify. For "${owner.businessName}", you have ${instruments.length} registered equipment item(s), ${applications.length} verification application(s), and a compliance score of ${owner.complianceScore}/100. How may I assist you today?`;
+  return `Greetings ${owner.name}! I am Metro Assistant for Metro Verify. For "${owner.businessName}", you have ${instruments.length} registered equipment item(s), ${applications.length} verification application(s), and a compliance score of ${owner.complianceScore}/100. How may I assist you today?`;
 }
 
 export default router;

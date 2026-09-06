@@ -16,6 +16,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { GovHeader } from '../../components/GovHeader';
 import { CertificateModal } from '../../components/CertificateModal';
+import { LmoCertificateModal, LmoCertificateData } from '../../components/LmoCertificateModal';
 import { Colors } from '../../theme/colors';
 import { API_ENDPOINTS } from '../../config/api';
 import { getOfficerToken, getActiveOfficer } from '../../services/authService';
@@ -61,6 +62,7 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
   const [completionModalVisible, setCompletionModalVisible] = useState(false);
   const [completedResult, setCompletedResult] = useState<any>(null);
   const [viewCertModal, setViewCertModal] = useState(false);
+  const [viewLmoCertModal, setViewLmoCertModal] = useState(false);
 
   // Load detailed instrument/assignment from backend if not provided
   useEffect(() => {
@@ -218,16 +220,21 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
 
     // ONLINE FLOW: Call stored procedure through backend
     try {
+      const activeOfficer = getActiveOfficer();
       const token = getOfficerToken();
       const headers: any = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
-      const endpoint =
-        verificationResult === 'PASS'
-          ? API_ENDPOINTS.inspectionComplete(assignmentId)
-          : API_ENDPOINTS.inspectionFailure(assignmentId);
+      let endpoint: string;
+      if (verificationResult === 'FAIL') {
+        endpoint = API_ENDPOINTS.inspectionFailure(assignmentId);
+      } else if (activeOfficer?.role === 'GATC') {
+        endpoint = API_ENDPOINTS.inspectionComplete(assignmentId);
+      } else {
+        endpoint = API_ENDPOINTS.passToGatc(assignmentId);
+      }
 
       const payload = {
         standardWeight: standardLoad,
@@ -251,6 +258,46 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
       setSubmitting(false);
 
       if (data.success) {
+        if (data.status === 'PASSED_TO_GATC') {
+          const lmoCert: LmoCertificateData = data.lmoCertificate || {
+            certificateNumber: `LMO-CERT-TS-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+            sealNumber: `TS-SEAL-${Math.floor(100000 + Math.random() * 900000)}`,
+            instrumentId: data.instrument?.id || instrumentId,
+            instrumentModel: instModel,
+            category: instCategory,
+            ownerName: ownerName,
+            issueDate: new Date().toISOString().split('T')[0],
+            officerName: data.verifyingOfficer || getActiveOfficer()?.name || 'V. Ramanathan',
+            officerBadge: getActiveOfficer()?.badgeNumber || 'LMO-TS-HYD-041',
+            officerDesignation: getActiveOfficer()?.designation || 'Legal Metrology Officer',
+            standardWeight: standardLoad,
+            indicatedValue: indicatedLoad,
+            errorMargin,
+            toleranceLimit,
+            status: 'CERTIFIED_BY_LMO_PASSED_TO_GATC',
+            gatcTargetLab: data.gatcTarget || 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+            latitude: gpsCoords?.lat,
+            longitude: gpsCoords?.lng,
+            remarks,
+          };
+
+          setCompletedResult({
+            offline: false,
+            result: 'PASS',
+            passedToGatc: true,
+            instrumentId: data.instrument?.id || instrumentId,
+            verifyingOfficer: data.verifyingOfficer,
+            gatcTarget: data.gatcTarget,
+            lmoCertificate: lmoCert,
+            evidence: {
+              hasPhoto: !!(photoBase64 || photoUri),
+              hasLocation: !!gpsCoords,
+            },
+          });
+          setCompletionModalVisible(true);
+          return;
+        }
+
         const rawCert = data.certificate;
         const normalizedCert = rawCert ? {
           ...rawCert,
@@ -265,6 +312,7 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
         setCompletedResult({
           offline: false,
           result: verificationResult,
+          passedToGatc: false,
           instrumentId: data.instrumentId || instrumentId,
           certificate: normalizedCert,
           evidence: data.evidence,
@@ -493,7 +541,9 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
               {!isOnline
                 ? 'Save to Offline Sync Queue ›'
                 : verificationResult === 'PASS'
-                ? 'Submit Verification & Issue Certificate ›'
+                ? (getActiveOfficer()?.role === 'GATC'
+                    ? 'Endorse Calibration & Issue Form VI Certificate ›'
+                    : 'Verify & Pass to GATC Centre for Laboratory Endorsement ›')
                 : 'Record Failure & Mark Reinspection ›'}
             </Text>
           )}
@@ -510,10 +560,12 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalSuccessIcon}>
-              {completedResult?.result === 'PASS' ? '✅' : '⚠️'}
+              {completedResult?.passedToGatc ? '🔬' : completedResult?.result === 'PASS' ? '✅' : '⚠️'}
             </Text>
             <Text style={styles.modalTitle}>
-              {completedResult?.offline
+              {completedResult?.passedToGatc
+                ? 'Passed to GATC Central Laboratory'
+                : completedResult?.offline
                 ? 'Verification Saved Offline'
                 : completedResult?.result === 'PASS'
                 ? 'Verification Completed Successfully'
@@ -526,19 +578,46 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
                 {instrumentId}
               </Text>
               <Text style={styles.modalDetailLine}>
-                <Text style={styles.modalDetailLabel}>Result: </Text>
-                {completedResult?.result}
+                <Text style={styles.modalDetailLabel}>LMO Physical Result: </Text>
+                {completedResult?.result === 'PASS' ? '✓ PASS (Within Tolerance)' : '✕ FAIL'}
               </Text>
               <Text style={styles.modalDetailLine}>
                 <Text style={styles.modalDetailLabel}>Evidence: </Text>
                 Photo {photoAttached ? '✓' : '—'} • GPS {gpsCoords ? '✓' : '—'}
               </Text>
-              {completedResult?.certificate && (
+              {completedResult?.passedToGatc ? (
+                <>
+                  <View style={{ backgroundColor: '#ECFDF5', borderColor: '#A7F3D0', borderWidth: 1, borderRadius: 6, padding: 8, marginVertical: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#065F46', textAlign: 'center' }}>
+                      🏛️ LMO FIELD CERTIFICATE ISSUED & PASSED TO GATC
+                    </Text>
+                  </View>
+                  <Text style={styles.modalDetailLine}>
+                    <Text style={styles.modalDetailLabel}>LMO Certificate No: </Text>
+                    {completedResult.lmoCertificate?.certificateNumber || 'LMO-CERT-TS-2026-PENDING'}
+                  </Text>
+                  <Text style={styles.modalDetailLine}>
+                    <Text style={styles.modalDetailLabel}>Physical Lead Seal: </Text>
+                    🔒 {completedResult.lmoCertificate?.sealNumber || 'TS-SEAL-VERIFIED'}
+                  </Text>
+                  <Text style={styles.modalDetailLine}>
+                    <Text style={styles.modalDetailLabel}>Certified By: </Text>
+                    ⚖️ {completedResult.verifyingOfficer} (Schedule VII Stamped)
+                  </Text>
+                  <Text style={styles.modalDetailLine}>
+                    <Text style={styles.modalDetailLabel}>Target Lab: </Text>
+                    🔬 {completedResult.gatcTarget}
+                  </Text>
+                  <Text style={styles.modalOfflineNote}>
+                    Field calibration verified within statutory limits. Official LMO Field Certificate generated. Handed off to Central Laboratory for GATC Endorsement and Form VI Certificate issuance.
+                  </Text>
+                </>
+              ) : completedResult?.certificate ? (
                 <Text style={styles.modalDetailLine}>
                   <Text style={styles.modalDetailLabel}>Certificate: </Text>
                   {completedResult.certificate.certificateNumber} (ACTIVE)
                 </Text>
-              )}
+              ) : null}
               {completedResult?.offline && (
                 <Text style={styles.modalOfflineNote}>
                   Stored in device offline queue. Ready to synchronize whenever network connectivity is
@@ -548,6 +627,16 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
             </View>
 
             <View style={styles.modalActionsRow}>
+              {completedResult?.passedToGatc && completedResult?.lmoCertificate && (
+                <TouchableOpacity
+                  style={styles.modalViewCertBtn}
+                  onPress={() => {
+                    setViewLmoCertModal(true);
+                  }}
+                >
+                  <Text style={styles.modalViewCertText}>📜 View LMO Slip</Text>
+                </TouchableOpacity>
+              )}
               {completedResult?.certificate && (
                 <TouchableOpacity
                   style={styles.modalViewCertBtn}
@@ -566,14 +655,21 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
                   navigation.navigate('OfficerSchedule');
                 }}
               >
-                <Text style={styles.modalDoneText}>Done</Text>
+                <Text style={styles.modalDoneText}>✓ Return to Schedule</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Certificate Viewer Modal if user presses View Certificate */}
+      {/* LMO Field Certificate Viewer Modal */}
+      <LmoCertificateModal
+        visible={viewLmoCertModal}
+        certificate={completedResult?.lmoCertificate || null}
+        onClose={() => setViewLmoCertModal(false)}
+      />
+
+      {/* Final GATC Certificate Viewer Modal if user presses View Certificate */}
       {completedResult?.certificate && (
         <CertificateModal
           visible={viewCertModal}

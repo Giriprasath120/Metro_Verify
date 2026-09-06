@@ -60,5 +60,17 @@ export const API_ENDPOINTS = {
   complianceScore: (ownerId: string) => `${API_BASE_URL}/api/compliance/${ownerId}/score`,
 
   // Dashboard
+  adminDashboard: `${API_BASE_URL}/api/dashboard/admin`,
+  cleanSlate: `${API_BASE_URL}/api/dashboard/clean-slate`,
+
+  // Bulk Auto-Split
+  bulkAutoSplitAllocate: (id: string) => `${API_BASE_URL}/api/bulk-requests/${id}/auto-split-allocate`,
+
+  // GATC Handoff & Endorsement
+  passToGatc: (id: string) => `${API_BASE_URL}/api/inspections/${id}/pass-to-gatc`,
+  pendingGatc: `${API_BASE_URL}/api/inspections/pending-gatc`,
+  gatcEndorse: (id: string) => `${API_BASE_URL}/api/inspections/${id}/gatc-endorse`,
+
+  // Dashboard
   dashboard: (role: string) => `${API_BASE_URL}/dashboard/${role}`,
 };

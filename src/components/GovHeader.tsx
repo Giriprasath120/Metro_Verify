@@ -19,6 +19,17 @@ export const GovHeader: React.FC<GovHeaderProps> = ({
 }) => {
   return (
     <View style={styles.container}>
+      {/* Official Apex Government Identity Strip */}
+      <View style={styles.apexGovBar}>
+        <View style={styles.apexLeft}>
+          <Text style={styles.apexFlag}>🇮🇳</Text>
+          <Text style={styles.apexGovText}>
+            भारत सरकार • GOVERNMENT OF INDIA  |  तेलंगाना सरकार • GOVT. OF TELANGANA
+          </Text>
+        </View>
+        <Text style={styles.apexMotto}>सत्यमेव जयते</Text>
+      </View>
+
       {/* Top National Identity Ribbon */}
       <View style={styles.topTricolor}>
         <View style={[styles.tricolorBand, { backgroundColor: '#FF9933' }]} />
@@ -72,16 +83,46 @@ export const GovHeader: React.FC<GovHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.primaryNavy,
+    backgroundColor: '#07162C',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
     elevation: 4
   },
+  apexGovBar: {
+    backgroundColor: '#030B17',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)'
+  },
+  apexLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  apexFlag: {
+    fontSize: 11
+  },
+  apexGovText: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#94A3B8',
+    letterSpacing: 0.4
+  },
+  apexMotto: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#CBD5E1',
+    letterSpacing: 0.5
+  },
   topTricolor: {
     flexDirection: 'row',
-    height: 3,
+    height: 3.5,
     width: '100%'
   },
   tricolorBand: {

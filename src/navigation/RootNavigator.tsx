@@ -253,16 +253,6 @@ function AdminTabNavigator({ onSwitchRole }: { onSwitchRole: () => void }) {
       >
         {props => <ComplianceAlertsScreen {...props} onSwitchRole={onSwitchRole} />}
       </Tab.Screen>
-
-      <Tab.Screen
-        name="BulkMonitor"
-        options={{
-          tabBarLabel: 'Batch Monitor',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📦</Text>
-        }}
-      >
-        {props => <BulkBatchMonitorScreen {...props} onSwitchRole={onSwitchRole} />}
-      </Tab.Screen>
     </Tab.Navigator>
   );
 }

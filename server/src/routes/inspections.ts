@@ -409,6 +409,355 @@ router.post('/:id/failure', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// POST /api/inspections/:id/pass-to-gatc - LMO Officer completes field verification and passes it to GATC Lab
+router.post('/:id/pass-to-gatc', async (req: AuthRequest, res: Response) => {
+  try {
+    const inspectionId = req.params.id;
+    const officerId = req.officerId!;
+    const {
+      standardWeight,
+      indicatedValue,
+      errorMargin,
+      toleranceLimit,
+      observations,
+      remarks,
+      photoReference,
+      latitude,
+      longitude,
+      locationTimestamp,
+    } = req.body;
+
+    let inspection = await prisma.inspection.findFirst({
+      where: {
+        OR: [
+          { id: inspectionId },
+          { assignmentId: inspectionId },
+          { applicationId: inspectionId },
+          { instrumentId: inspectionId },
+        ],
+      },
+      include: {
+        assignment: true,
+        instrument: true,
+        officer: true,
+      },
+    });
+
+    if (!inspection) {
+      const assignment = await prisma.assignment.findFirst({
+        where: {
+          OR: [
+            { id: inspectionId },
+            { instrumentId: inspectionId },
+            { applicationId: inspectionId },
+          ],
+        },
+        include: { instrument: true, assignedOfficer: true },
+      });
+
+      if (!assignment) {
+        return res.status(404).json({ success: false, error: 'Assignment not found' });
+      }
+
+      inspection = await prisma.inspection.create({
+        data: {
+          id: genId('INSP'),
+          assignmentId: assignment.id,
+          instrumentId: assignment.instrumentId,
+          officerId: assignment.assignedOfficerId || officerId,
+          applicationId: assignment.applicationId,
+          status: 'IN_PROGRESS',
+        },
+        include: {
+          assignment: true,
+          instrument: true,
+          officer: true,
+        },
+      });
+    }
+
+    // Generate official LMO Field Verification Certificate
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const lmoCertId = genId('LMO-CERT');
+    const lmoCertNumber = `LMO-CERT-TS-${today.getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+    const lmoSealNumber = `TS-SEAL-${Math.floor(100000 + Math.random() * 900000)}`;
+
+    const lmoCertificate = {
+      id: lmoCertId,
+      certificateNumber: lmoCertNumber,
+      sealNumber: lmoSealNumber,
+      type: 'LMO_FIELD_VERIFICATION_CERTIFICATE',
+      title: 'Field Verification & Preliminary Test Certificate',
+      instrumentId: inspection.instrumentId,
+      instrumentModel: (inspection as any).instrument?.model || 'Commercial Scale',
+      category: (inspection as any).instrument?.category || 'Weighing Instrument',
+      ownerName: (inspection.assignment as any)?.owner?.businessName || (inspection.assignment as any)?.owner?.name || 'Authorized Trader',
+      issueDate: todayStr,
+      officerName: inspection.officer.name,
+      officerBadge: inspection.officer.badgeNumber,
+      officerDesignation: inspection.officer.designation || 'Legal Metrology Officer (LMO)',
+      district: inspection.officer.district || 'Hyderabad North',
+      standardWeight: standardWeight !== undefined ? String(standardWeight) : inspection.standardWeight || '20 kg',
+      indicatedValue: indicatedValue !== undefined ? String(indicatedValue) : inspection.indicatedValue || '20.000 kg',
+      errorMargin: errorMargin !== undefined ? String(errorMargin) : inspection.errorMargin || '0.00%',
+      toleranceLimit: toleranceLimit !== undefined ? String(toleranceLimit) : inspection.toleranceLimit || '±0.05%',
+      status: 'CERTIFIED_BY_LMO_PASSED_TO_GATC',
+      gatcTargetLab: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+      certifiedAt: today.toISOString(),
+      remarks: remarks || inspection.remarks || 'Passed field calibration tests by LMO. Certified and passed to GATC Centre for Form VI Laboratory Endorsement.',
+    };
+
+    const finalRemarks = `${remarks || inspection.remarks || 'Passed field calibration tests by LMO. Certified & passed to GATC for final laboratory endorsement.'}\n[LMO_CERTIFICATE_ISSUED]: ${JSON.stringify(lmoCertificate)}`;
+
+    // Save field test results, LMO certificate slip, and pass to GATC
+    const updatedInspection = await prisma.inspection.update({
+      where: { id: inspection.id },
+      data: {
+        standardWeight: standardWeight !== undefined ? String(standardWeight) : inspection.standardWeight,
+        indicatedValue: indicatedValue !== undefined ? String(indicatedValue) : inspection.indicatedValue,
+        errorMargin: errorMargin !== undefined ? String(errorMargin) : inspection.errorMargin,
+        toleranceLimit: toleranceLimit !== undefined ? String(toleranceLimit) : inspection.toleranceLimit,
+        result: 'PASS',
+        observations: observations || inspection.observations,
+        remarks: finalRemarks,
+        photoReference: photoReference || inspection.photoReference,
+        latitude: latitude !== undefined ? parseFloat(latitude) : inspection.latitude,
+        longitude: longitude !== undefined ? parseFloat(longitude) : inspection.longitude,
+        locationTimestamp: locationTimestamp || new Date().toISOString(),
+        status: 'PASSED_TO_GATC',
+      },
+      include: {
+        instrument: true,
+        officer: true,
+      },
+    });
+
+    // Update assignment and instrument status
+    await prisma.assignment.update({
+      where: { id: inspection.assignmentId },
+      data: { status: 'PASSED_TO_GATC' },
+    });
+
+    await prisma.instrument.update({
+      where: { id: inspection.instrumentId },
+      data: { status: 'PASSED_TO_GATC' },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Field Verification Passed by LMO. Official LMO Field Certificate Issued & Handed off to GATC Centre.',
+      status: 'PASSED_TO_GATC',
+      inspection: updatedInspection,
+      instrument: updatedInspection.instrument,
+      verifyingOfficer: updatedInspection.officer.name,
+      lmoCertificate,
+      gatcTarget: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /api/inspections/pending-gatc - List all inspections awaiting GATC laboratory endorsement with LMO Certificates
+router.get('/pending-gatc', async (_req: AuthRequest, res: Response) => {
+  try {
+    const inspections = await prisma.inspection.findMany({
+      where: { status: 'PASSED_TO_GATC' },
+      include: {
+        instrument: true,
+        officer: true,
+        assignment: {
+          include: {
+            owner: true,
+          },
+        },
+        application: true,
+      },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    const enhanced = inspections.map((insp) => {
+      let lmoCertificate: any = null;
+      if (insp.remarks && insp.remarks.includes('[LMO_CERTIFICATE_ISSUED]:')) {
+        try {
+          const jsonPart = insp.remarks.split('[LMO_CERTIFICATE_ISSUED]:')[1]?.trim();
+          if (jsonPart) {
+            lmoCertificate = JSON.parse(jsonPart);
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      if (!lmoCertificate) {
+        lmoCertificate = {
+          id: `LMO-CERT-${insp.id}`,
+          certificateNumber: `LMO-CERT-TS-2026-${insp.id.replace(/\D/g, '').slice(0, 5) || '72914'}`,
+          sealNumber: `TS-SEAL-${insp.id.replace(/\D/g, '').slice(-6) || '482910'}`,
+          type: 'LMO_FIELD_VERIFICATION_CERTIFICATE',
+          title: 'Field Verification & Preliminary Test Certificate',
+          instrumentId: insp.instrumentId,
+          instrumentModel: insp.instrument?.model || 'Commercial Measuring Instrument',
+          category: insp.instrument?.category || 'Weighing Scale',
+          ownerName: insp.assignment?.owner?.businessName || insp.assignment?.owner?.name || 'Registered Trader',
+          issueDate: insp.startedAt ? insp.startedAt.toISOString().split('T')[0] : '2026-09-06',
+          officerName: insp.officer?.name || 'V. Ramanathan',
+          officerBadge: insp.officer?.badgeNumber || 'LMO-TS-HYD-041',
+          officerDesignation: insp.officer?.designation || 'Legal Metrology Officer (LMO)',
+          district: insp.officer?.district || 'Hyderabad North',
+          standardWeight: insp.standardWeight || '20 kg',
+          indicatedValue: insp.indicatedValue || '20.000 kg',
+          errorMargin: insp.errorMargin || '0.00%',
+          toleranceLimit: insp.toleranceLimit || '±0.05%',
+          status: 'CERTIFIED_BY_LMO_PASSED_TO_GATC',
+          gatcTargetLab: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+          certifiedAt: insp.startedAt || new Date().toISOString(),
+          remarks: insp.remarks || 'Passed field calibration tests by LMO.',
+        };
+      }
+
+      return {
+        ...insp,
+        lmoCertificate,
+      };
+    });
+
+    return res.json({
+      success: true,
+      count: enhanced.length,
+      inspections: enhanced,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/inspections/:id/gatc-endorse - GATC Laboratory reviews LMO field results and issues Form VI Certificate
+router.post('/:id/gatc-endorse', async (req: AuthRequest, res: Response) => {
+  try {
+    const inspectionId = req.params.id;
+    const { labRemarks } = req.body;
+
+    const inspection = await prisma.inspection.findFirst({
+      where: {
+        OR: [
+          { id: inspectionId },
+          { assignmentId: inspectionId },
+          { instrumentId: inspectionId },
+        ],
+      },
+      include: {
+        instrument: true,
+        officer: true,
+        assignment: {
+          include: {
+            owner: true,
+          },
+        },
+      },
+    });
+
+    if (!inspection) {
+      return res.status(404).json({ success: false, error: 'Inspection record not found' });
+    }
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const expiryDate = new Date(today);
+    expiryDate.setFullYear(today.getFullYear() + 1);
+    const expiryStr = expiryDate.toISOString().split('T')[0];
+
+    const certId = genId('CERT');
+    const certNumber = `IND/LM/TS/${today.getFullYear().toString().slice(-2)}/${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const certPayload = JSON.stringify({
+      certNumber,
+      instrumentId: inspection.instrumentId,
+      ownerId: inspection.assignment.ownerId,
+      issueDate: todayStr,
+      validUntil: expiryStr,
+      verifyingOfficer: inspection.officer.name,
+      officerBadge: inspection.officer.badgeNumber,
+      endorsingLab: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+      status: 'ACTIVE',
+      verifyUrl: `/verify/${certId}`,
+    });
+
+    // 1. Create Certificate in MySQL with dual endorsement
+    const certificate = await prisma.certificate.create({
+      data: {
+        id: certId,
+        certificateNumber: certNumber,
+        instrumentId: inspection.instrumentId,
+        ownerId: inspection.assignment.ownerId,
+        applicationId: inspection.applicationId,
+        inspectionId: inspection.id,
+        issueDate: todayStr,
+        validUntil: expiryStr,
+        officerName: inspection.officer.name,
+        officerBadge: inspection.officer.badgeNumber,
+        officerDesignation: inspection.officer.designation,
+        gatcLabName: 'Telangana State Legal Metrology Central Laboratory',
+        gatcOfficerName: 'Central Testing Directorate',
+        gatcOfficerBadge: 'GATC-TS-01',
+        gatcApproved: true,
+        gatcApprovalDate: todayStr,
+        qrCodeData: certPayload,
+        status: 'ACTIVE',
+      },
+    });
+
+    // 2. Mark inspection COMPLETED
+    await prisma.inspection.update({
+      where: { id: inspection.id },
+      data: {
+        status: 'COMPLETED',
+        completedAt: today,
+        remarks: labRemarks
+          ? `${inspection.remarks || ''}\n[GATC Laboratory Endorsement]: ${labRemarks}`
+          : inspection.remarks,
+      },
+    });
+
+    // 3. Mark assignment COMPLETED
+    await prisma.assignment.update({
+      where: { id: inspection.assignmentId },
+      data: { status: 'COMPLETED' },
+    });
+
+    // 4. Update instrument status to VERIFIED and attach certificate
+    const updatedInstrument = await prisma.instrument.update({
+      where: { id: inspection.instrumentId },
+      data: {
+        status: 'VERIFIED',
+        certificateId: certificate.id,
+        lastVerifiedDate: todayStr,
+        expiryDate: expiryStr,
+      },
+    });
+
+    // 5. Decrement LMO workload if > 0
+    if (inspection.officer.currentWorkload > 0) {
+      await prisma.officer.update({
+        where: { id: inspection.officer.id },
+        data: { currentWorkload: { decrement: 1 } },
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Certificate issued with GATC Laboratory Endorsement & QR Code.',
+      certificate,
+      instrument: updatedInstrument,
+      verifyingOfficer: inspection.officer.name,
+      gatcLab: 'Telangana State Legal Metrology Central Laboratory',
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // POST /api/inspections/:id/reinspection - Trigger reinspection request
 router.post('/:id/reinspection', async (req: AuthRequest, res: Response) => {
   try {
@@ -449,3 +798,4 @@ router.post('/:id/reinspection', async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
+

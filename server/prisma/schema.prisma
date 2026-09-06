@@ -214,6 +214,11 @@ model Certificate {
   officerName        String
   officerBadge       String
   officerDesignation String
+  gatcLabName        String?        @default("Telangana State Legal Metrology Central Laboratory")
+  gatcOfficerName    String?        @default("Director of Central Metrology Lab")
+  gatcOfficerBadge   String?        @default("GATC-TS-01")
+  gatcApproved       Boolean        @default(true)
+  gatcApprovalDate   String?
   qrCodeData         String         @db.Text
   pdfPath            String?
   status             String         @default("ACTIVE") // ACTIVE, EXPIRED, REVOKED

@@ -43,8 +43,41 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const secHash = typeof rawHash === 'string' ? rawHash.slice(0, 16) : 'SEC-VERIFY-2026';
   const certStatus = certificate.status || 'ACTIVE';
 
-  const lanHost = '10.20.222.175';
-  const verifyUrl = `http://${lanHost}:4000/api/certificates/${encodeURIComponent(certNumber)}/verify`;
+  const now = new Date();
+  const expiryDate = new Date(validUntil);
+  const diffDays = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+  let dynStatus = { text: 'ACTIVE', color: '#15803D', bg: '#DCFCE7', border: '#86EFAC' };
+  if (diffDays < 0) {
+    dynStatus = { text: `EXPIRED (${Math.abs(diffDays)}d ago)`, color: '#DC2626', bg: '#FEE2E2', border: '#FCA5A5' };
+  } else if (diffDays <= 30) {
+    dynStatus = { text: `EXPIRING SOON (${diffDays}d left)`, color: '#D97706', bg: '#FEF3C7', border: '#FCD34D' };
+  }
+
+  const gatcLab = (certificate as any).gatcLabName || 'Telangana State Legal Metrology Central Laboratory (GATC-01)';
+
+  // Dynamic host determination: use browser location if on LAN/remote, fallback to detected IP 10.20.222.175
+  const activeHostname = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+    ? window.location.hostname
+    : '10.20.222.175';
+
+  // Use certificate.id (e.g. CERT-653059) and query param /verify?id=... to prevent slash %2F routing failures
+  const certIdParam = certificate.id || certNumber;
+  const verifyUrl = `http://${activeHostname}:4000/api/certificates/verify?id=${encodeURIComponent(certIdParam)}`;
+
+  const qrPayload = `LEGAL METROLOGY DIGITAL VERIFICATION (FORM VI)
+========================================
+STATUS: ${dynStatus.text}
+CERT NO: ${certNumber}
+INSTRUMENT: ${instId}
+ESTABLISHMENT: Sri Balaji Mandi & Agro Traders
+LMO OFFICER: ${officer}
+GATC LAB: ${gatcLab}
+STANDARD: ${standard}
+VALIDITY: ${issueDate} TO ${validUntil}
+DUAL ENDORSEMENT: LMO Field Verified + GATC Lab Endorsed (Rule 14)
+========================================
+ONLINE VERIFY: ${verifyUrl}`;
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -137,21 +170,27 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               </View>
 
               <View style={styles.badgeRow}>
-                <StatusBadge status={certStatus} />
+                <View style={[styles.dynStatusBadge, { backgroundColor: dynStatus.bg, borderColor: dynStatus.border }]}>
+                  <Text style={[styles.dynStatusBadgeText, { color: dynStatus.color }]}>
+                    ● {dynStatus.text}
+                  </Text>
+                </View>
                 <Text style={styles.certNumberText}>{certNumber}</Text>
               </View>
 
-              {/* QR Code Container */}
+              {/* Official Single QR Code Container */}
               <View style={styles.qrSection}>
                 <View style={styles.qrBox}>
                   <QRCode
-                    value={verifyUrl}
-                    size={160}
+                    value={qrPayload}
+                    size={175}
                     color="#0B2545"
                     backgroundColor="#FFFFFF"
                   />
                 </View>
-                <Text style={styles.qrCaption}>Scan with any phone camera to verify on Government Portal</Text>
+                <Text style={styles.qrCaption}>
+                  ✓ Official Government Verification QR • Point any phone camera or QR scanner to view instant verification status &amp; digital certificate details
+                </Text>
                 
                 {/* Direct Link Button */}
                 <TouchableOpacity
@@ -164,15 +203,18 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
                 {/* Live Scanner Output Preview Box */}
                 <View style={styles.scannedPreviewBox}>
-                  <Text style={styles.scannedPreviewTitle}>📱 Live Scanner Web Link:</Text>
+                  <Text style={styles.scannedPreviewTitle}>📱 Live Scanner Output:</Text>
                   <TouchableOpacity onPress={() => Linking.openURL(verifyUrl)}>
                     <Text style={styles.verifyLinkText}>{verifyUrl}</Text>
                   </TouchableOpacity>
-                  <Text style={styles.scannedStatusApproved}>✓ STATUS: APPROVED & VERIFIED (FORM VI)</Text>
+                  <Text style={[styles.scannedStatusApproved, { color: dynStatus.color }]}>
+                    ● STATUS: {dynStatus.text} (FORM VI)
+                  </Text>
                   <Text style={styles.scannedPreviewText}>• Certificate: {certNumber}</Text>
                   <Text style={styles.scannedPreviewText}>• Instrument ID: {instId}</Text>
                   <Text style={styles.scannedPreviewText}>• Valid Until: {validUntil}</Text>
-                  <Text style={styles.scannedPreviewText}>• Officer: {officer}</Text>
+                  <Text style={styles.scannedPreviewText}>• Verifying Officer: {officer}</Text>
+                  <Text style={styles.scannedPreviewText}>• Endorsing Lab: {gatcLab}</Text>
                 </View>
               </View>
 
@@ -187,8 +229,12 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                   <Text style={styles.tableValue}>{authority}</Text>
                 </View>
                 <View style={styles.tableRow}>
-                  <Text style={styles.tableLabel}>Verifying Officer</Text>
-                  <Text style={styles.tableValue}>{officer}</Text>
+                  <Text style={styles.tableLabel}>Verifying LMO Officer</Text>
+                  <Text style={styles.tableValue}>⚖️ {officer}</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableLabel}>Endorsing GATC Lab</Text>
+                  <Text style={styles.tableValue}>🔬 {gatcLab}</Text>
                 </View>
                 <View style={styles.tableRow}>
                   <Text style={styles.tableLabel}>Applicable Standard</Text>
@@ -206,6 +252,14 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                   <Text style={styles.tableLabelHighlight}>Valid Until</Text>
                   <Text style={styles.tableValueHighlight}>{validUntil}</Text>
                 </View>
+              </View>
+
+              {/* Dual Signature Endorsement Box */}
+              <View style={styles.dualEndorsementCard}>
+                <Text style={styles.dualEndorsementTitle}>✓ Dual Government Endorsement Active</Text>
+                <Text style={styles.dualEndorsementText}>
+                  Field physical verification executed by Legal Metrology Officer. Calibration test results endorsed by Government Approved Test Centre / State Central Laboratory under Rule 14.
+                </Text>
               </View>
 
               {/* Seal Stamp */}
@@ -544,5 +598,69 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontWeight: '600',
     fontSize: 13
-  }
+  },
+  dynStatusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  dynStatusBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  dualEndorsementCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  dualEndorsementTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#15803D',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+  },
+  dualEndorsementText: {
+    fontSize: 10,
+    color: '#166534',
+    lineHeight: 14,
+  },
+  qrModeToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 3,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  qrModeBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrModeBtnActive: {
+    backgroundColor: Colors.primaryNavy,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  qrModeBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  qrModeBtnTextActive: {
+    color: '#FFFFFF',
+  },
 });

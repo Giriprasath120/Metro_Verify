@@ -19,9 +19,27 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
   const normalized = (status || '').trim().toLowerCase();
   
   let config = Colors.status.pending;
+  let displayText = status;
 
-  if (normalized === 'verified' || normalized === 'active') {
+  if (normalized === 'verified' || normalized === 'active' || normalized === 'gatc endorsed' || normalized === 'gatc_approved') {
     config = Colors.status.verified;
+    displayText = normalized === 'active' ? 'Active (Form VI)' : 'Verified (GATC)';
+  } else if (normalized.includes('passed to gatc') || normalized.includes('passed_to_gatc') || normalized === 'gatc_queue' || normalized === 'certified_by_lmo') {
+    config = {
+      bg: '#FAF5FF',
+      border: '#E9D5FF',
+      text: '#7E22CE',
+      dot: '#A855F7'
+    };
+    displayText = '🔬 Passed to GATC';
+  } else if (normalized === 'submitted' || normalized === 'request submitted') {
+    config = {
+      bg: '#EFF6FF',
+      border: '#BFDBFE',
+      text: '#1D4ED8',
+      dot: '#3B82F6'
+    };
+    displayText = '📋 Request Submitted';
   } else if (normalized === 'scheduled') {
     config = Colors.status.scheduled;
   } else if (normalized === 'in progress' || normalized === 'in_progress') {
@@ -44,7 +62,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
     >
       <View style={[styles.dot, { backgroundColor: config.dot }, isSmall && styles.dotSmall]} />
       <Text style={[styles.text, { color: config.text }, isSmall && styles.textSmall]}>
-        {status}
+        {displayText}
       </Text>
     </View>
   );

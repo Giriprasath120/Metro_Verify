@@ -231,11 +231,30 @@ export const OwnerDashboardScreen: React.FC<OwnerDashboardScreenProps> = ({
   );
   const [withdrawingApp, setWithdrawingApp] = useState<ApplicationItem | null>(null);
   const [selectedBulkDetail, setSelectedBulkDetail] = useState<BulkRequestItem | null>(null);
-  const [successBanner, setSuccessBanner] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [officerNoticeModalVisible, setOfficerNoticeModalVisible] = useState(false);
   const [assignedNoticeItem, setAssignedNoticeItem] = useState<ApplicationItem | null>(null);
-  const [acknowledgedNoticeIds, setAcknowledgedNoticeIds] = useState<Record<string, boolean>>({});
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+
+// Global module-level memory to prevent repeated popups across tab navigations
+const globalAcknowledgedNoticeIds = new Set<string>();
+
+const hasNoticeBeenAcknowledged = (appId: string): boolean => {
+  if (globalAcknowledgedNoticeIds.has(appId)) return true;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    return window.localStorage.getItem(`acknowledged_notice_${appId}`) === 'true';
+  }
+  return false;
+};
+
+const markNoticeAcknowledged = (appId: string) => {
+  globalAcknowledgedNoticeIds.add(appId);
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(`acknowledged_notice_${appId}`, 'true');
+    } catch {}
+  }
+};
 
   // Fetch live applications & bulk requests from API
   const fetchDashboardData = useCallback(async () => {
@@ -278,11 +297,11 @@ export const OwnerDashboardScreen: React.FC<OwnerDashboardScreenProps> = ({
             });
           setApplications(mapped);
 
-          // Find newly assigned application to alert the owner
+          // Find newly assigned application to alert the owner (strictly once!)
           const newlyAssigned = mapped.find((item: ApplicationItem) =>
             item.assignedOfficer &&
             (item.status === 'SCHEDULED' || item.status === 'Scheduled' || item.status === 'IN_PROGRESS') &&
-            !acknowledgedNoticeIds[item.id]
+            !hasNoticeBeenAcknowledged(item.id)
           );
 
           if (newlyAssigned) {
@@ -680,6 +699,65 @@ export const OwnerDashboardScreen: React.FC<OwnerDashboardScreenProps> = ({
                     <Text style={styles.appRuleText}>⚖️ {app.ruleReference}</Text>
                   )}
 
+                  {/* Indication 1: Request Submitted by Owner */}
+                  {(app.status === 'Submitted' || app.status === 'SUBMITTED') && !app.assignedOfficer && (
+                    <View style={styles.submittedIndicationBox}>
+                      <View style={styles.indicationHeaderRow}>
+                        <Text style={styles.submittedIndicationIcon}>📋</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.submittedIndicationTitle}>REQUEST SUBMITTED BY OWNER</Text>
+                          <Text style={styles.submittedIndicationSub}>
+                            Application registered in Telangana State Legal Metrology Portal. Awaiting LMO Officer smart allocation.
+                          </Text>
+                        </View>
+                        <View style={styles.stagePillSubmitted}>
+                          <Text style={styles.stagePillSubmittedText}>STAGE 1 / 3</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Indication 2: Certified by LMO and Passed to GATC */}
+                  {(app.status === 'PASSED_TO_GATC' ||
+                    app.status === 'GATC_QUEUE' ||
+                    app.status === 'IN_GATC_REVIEW' ||
+                    app.status === 'CERTIFIED_BY_LMO' ||
+                    (app as any).status?.toUpperCase?.().includes('GATC') ||
+                    (app as any).lmoCertified) && (
+                    <View style={styles.gatcIndicationBox}>
+                      <View style={styles.indicationHeaderRow}>
+                        <Text style={styles.gatcIndicationIcon}>⚖️ ➔ 🔬</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.gatcIndicationTitle}>PASSED TO GATC • CERTIFIED BY LMO</Text>
+                          <Text style={styles.gatcIndicationSub}>
+                            Physical calibration completed &amp; official lead seal affixed by LMO. Application forwarded to Central GATC Laboratory for final Form VI Certificate Endorsement.
+                          </Text>
+                        </View>
+                        <View style={styles.stagePillGatc}>
+                          <Text style={styles.stagePillGatcText}>STAGE 2 / 3</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Indication 3: GATC Endorsed & Completed */}
+                  {(app.status === 'COMPLETED' || app.status === 'VERIFIED' || app.status === 'ACTIVE') && (
+                    <View style={styles.completedIndicationBox}>
+                      <View style={styles.indicationHeaderRow}>
+                        <Text style={styles.completedIndicationIcon}>🏛️</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.completedIndicationTitle}>GATC ENDORSED • FORM VI CERTIFICATE ISSUED</Text>
+                          <Text style={styles.completedIndicationSub}>
+                            Central Laboratory endorsement complete. Official Form VI Verification Certificate is now active and accessible under the Certificates tab.
+                          </Text>
+                        </View>
+                        <View style={styles.stagePillCompleted}>
+                          <Text style={styles.stagePillCompletedText}>STAGE 3 / 3 ✓</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
                   {/* Assigned Officer Details Box if allocated */}
                   {app.assignedOfficer && (
                     <View style={styles.appOfficerCard}>
@@ -751,57 +829,6 @@ export const OwnerDashboardScreen: React.FC<OwnerDashboardScreenProps> = ({
               );
             })
           )}
-        </View>
-
-        {/* Registered Equipment Quick Preview */}
-        <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>Registered Equipment Registry</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Instruments')}>
-            <Text style={styles.viewAllText}>View All ({totalInstruments}) ›</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.instrumentsList}>
-          {myInstruments.slice(0, 3).map(item => (
-            <View
-              key={item.id}
-              style={styles.instrumentCard}
-            >
-              <View style={styles.cardTopRow}>
-                <View style={styles.modelCol}>
-                  <Text style={styles.modelName}>{item.model}</Text>
-                  <Text style={styles.categoryText}>
-                    {item.category} • {item.capacity}
-                  </Text>
-                </View>
-                <StatusBadge status={item.status} size="sm" />
-              </View>
-
-              <View style={styles.cardDivider} />
-
-              <View style={styles.cardBottomRow}>
-                <View style={styles.idBadgeHighlight}>
-                  <Text style={styles.idBadgeIcon}>🏷️</Text>
-                  <Text style={styles.idBadgeLabel}>UID:</Text>
-                  <Text style={styles.idBadgeValue}>{item.id}</Text>
-                </View>
-                <Text style={styles.metaLabel}>
-                  Due:{' '}
-                  <Text
-                    style={[
-                      styles.metaValue,
-                      item.status === 'Expiring Soon' && {
-                        color: '#C2410C',
-                        fontWeight: 'bold'
-                      }
-                    ]}
-                  >
-                    {item.expiryDate}
-                  </Text>
-                </Text>
-              </View>
-            </View>
-          ))}
         </View>
       </ScrollView>
 
@@ -1006,7 +1033,7 @@ export const OwnerDashboardScreen: React.FC<OwnerDashboardScreenProps> = ({
         animationType="fade"
         onRequestClose={() => {
           if (assignedNoticeItem) {
-            setAcknowledgedNoticeIds(prev => ({ ...prev, [assignedNoticeItem.id]: true }));
+            markNoticeAcknowledged(assignedNoticeItem.id);
           }
           setOfficerNoticeModalVisible(false);
         }}
@@ -1102,7 +1129,7 @@ export const OwnerDashboardScreen: React.FC<OwnerDashboardScreenProps> = ({
                 style={styles.noticeDismissBtn}
                 onPress={() => {
                   if (assignedNoticeItem) {
-                    setAcknowledgedNoticeIds(prev => ({ ...prev, [assignedNoticeItem.id]: true }));
+                    markNoticeAcknowledged(assignedNoticeItem.id);
                   }
                   setOfficerNoticeModalVisible(false);
                 }}
@@ -2241,5 +2268,119 @@ const styles = StyleSheet.create({
     color: Colors.textWhite,
     fontSize: 12.5,
     fontWeight: '700',
+  },
+  // Lifecycle Indications
+  indicationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  submittedIndicationBox: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    borderRadius: 10,
+    padding: 12,
+    marginVertical: 8,
+  },
+  submittedIndicationIcon: {
+    fontSize: 22,
+  },
+  submittedIndicationTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    letterSpacing: 0.5,
+  },
+  submittedIndicationSub: {
+    fontSize: 10.5,
+    color: '#1E40AF',
+    marginTop: 3,
+    lineHeight: 14,
+  },
+  stagePillSubmitted: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+  },
+  stagePillSubmittedText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#1E40AF',
+  },
+  gatcIndicationBox: {
+    backgroundColor: '#FAF5FF',
+    borderWidth: 1.5,
+    borderColor: '#D8B4FE',
+    borderRadius: 10,
+    padding: 12,
+    marginVertical: 8,
+  },
+  gatcIndicationIcon: {
+    fontSize: 20,
+  },
+  gatcIndicationTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#7E22CE',
+    letterSpacing: 0.5,
+  },
+  gatcIndicationSub: {
+    fontSize: 10.5,
+    color: '#6B21A8',
+    marginTop: 3,
+    lineHeight: 14,
+  },
+  stagePillGatc: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#D8B4FE',
+  },
+  stagePillGatcText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#7E22CE',
+  },
+  completedIndicationBox: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: 10,
+    padding: 12,
+    marginVertical: 8,
+  },
+  completedIndicationIcon: {
+    fontSize: 22,
+  },
+  completedIndicationTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#15803D',
+    letterSpacing: 0.5,
+  },
+  completedIndicationSub: {
+    fontSize: 10.5,
+    color: '#166534',
+    marginTop: 3,
+    lineHeight: 14,
+  },
+  stagePillCompleted: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  stagePillCompletedText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#15803D',
   },
 });

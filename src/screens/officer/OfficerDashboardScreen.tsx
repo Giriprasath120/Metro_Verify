@@ -8,12 +8,14 @@ import {
   Switch,
   SafeAreaView,
   ActivityIndicator,
-  Modal,
   Linking,
   Alert,
 } from 'react-native';
 import { GovHeader } from '../../components/GovHeader';
 import { StatusBadge } from '../../components/StatusBadge';
+import { CertificateModal } from '../../components/CertificateModal';
+import { LmoCertificateModal, LmoCertificateData } from '../../components/LmoCertificateModal';
+import { OfficerMapView } from '../../components/OfficerMapView';
 import { Colors } from '../../theme/colors';
 import { API_ENDPOINTS } from '../../config/api';
 import {
@@ -32,14 +34,6 @@ interface OfficerDashboardScreenProps {
   setIsOfflineMode: (val: boolean) => void;
 }
 
-const OFFICER_ACCOUNTS = [
-  { id: 'LMO-101', name: 'V. Ramanathan', role: 'LMO', zone: 'Hyderabad North' },
-  { id: 'LMO-102', name: 'Sunita Rao', role: 'LMO', zone: 'Secunderabad' },
-  { id: 'LMO-103', name: 'A. Kumar', role: 'LMO', zone: 'Charminar Zone' },
-  { id: 'LMO-104', name: 'K. Priya', role: 'LMO', zone: 'Cyberabad West' },
-  { id: 'GATC-01', name: 'State Central Lab', role: 'GATC', zone: 'Central Testing' },
-];
-
 export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
   navigation,
   onSwitchRole,
@@ -48,7 +42,15 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
 }) => {
   const [currentOfficer, setCurrentOfficerState] = useState<OfficerProfile>(getActiveOfficer());
   const [loading, setLoading] = useState(true);
-  const [officerModalVisible, setOfficerModalVisible] = useState(false);
+  const [activeTab, setActiveTab] = useState<'single' | 'bulk' | 'map'>('single');
+  const [pendingGatcList, setPendingGatcList] = useState<any[]>([]);
+  const [endorsingId, setEndorsingId] = useState<string | null>(null);
+  const [endorsedCert, setEndorsedCert] = useState<any>(null);
+  const [certModalVisible, setCertModalVisible] = useState(false);
+  const [selectedLmoCert, setSelectedLmoCert] = useState<LmoCertificateData | null>(null);
+  const [lmoCertModalVisible, setLmoCertModalVisible] = useState(false);
+  const [inspectingInspId, setInspectingInspId] = useState<string | null>(null);
+
   const [metrics, setMetrics] = useState({
     assignedToday: 0,
     completed: 0,
@@ -96,8 +98,12 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers.Authorization = `Bearer ${token}`;
 
-      const res = await fetch(API_ENDPOINTS.lmoDashboard, { headers });
-      const data = await res.json();
+      const [dashRes, gatcRes] = await Promise.all([
+        fetch(API_ENDPOINTS.lmoDashboard, { headers }),
+        fetch(API_ENDPOINTS.pendingGatc, { headers }).catch(() => null),
+      ]);
+
+      const data = await dashRes.json();
 
       if (data.success) {
         const localQueue = getOfflineQueue();
@@ -111,6 +117,13 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
         if (data.officer) {
           setCurrentOfficerState(data.officer);
           setActiveOfficer(data.officer);
+        }
+      }
+
+      if (gatcRes) {
+        const gatcData = await gatcRes.json();
+        if (gatcData.success) {
+          setPendingGatcList(gatcData.inspections || []);
         }
       }
     } catch (err) {
@@ -132,13 +145,33 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
     return unsubscribe;
   }, [navigation, currentOfficer.id, fetchDashboardData]);
 
-  const handleSwitchOfficerAccount = async (officerId: string) => {
-    setOfficerModalVisible(false);
-    setLoading(true);
-    const loginRes = await loginOfficer(officerId, 'password123');
-    if (loginRes.success && loginRes.officer) {
-      setCurrentOfficerState(loginRes.officer);
-      fetchDashboardData(officerId);
+  const handleGatcEndorse = async (inspectionId: string) => {
+    setEndorsingId(inspectionId);
+    try {
+      const token = getOfficerToken();
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      const res = await fetch(API_ENDPOINTS.gatcEndorse(inspectionId), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          labRemarks: 'Form VI calibration reviewed and endorsed under official State Central Testing Laboratory seal.',
+        }),
+      });
+      const data = await res.json();
+      setEndorsingId(null);
+
+      if (data.success && data.certificate) {
+        setEndorsedCert(data.certificate);
+        setCertModalVisible(true);
+        fetchDashboardData(currentOfficer.id);
+      } else {
+        Alert.alert('GATC Notice', data.error || 'Failed to endorse inspection.');
+      }
+    } catch (err: any) {
+      setEndorsingId(null);
+      Alert.alert('Connection Error', err.message);
     }
   };
 
@@ -161,12 +194,11 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
             <View style={styles.officerInfo}>
               <View style={styles.officerTitleRow}>
                 <Text style={styles.officerName}>{currentOfficer.name}</Text>
-                <TouchableOpacity
-                  style={styles.switchOfficerBtn}
-                  onPress={() => setOfficerModalVisible(true)}
-                >
-                  <Text style={styles.switchOfficerText}>Switch ▾</Text>
-                </TouchableOpacity>
+                <View style={styles.officerBadgePill}>
+                  <Text style={styles.officerBadgePillText}>
+                    {currentOfficer.badgeNumber || currentOfficer.id}
+                  </Text>
+                </View>
               </View>
               <Text style={styles.officerDesignation}>
                 {currentOfficer.designation || 'Legal Metrology Officer'}
@@ -237,12 +269,125 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
           </View>
         </View>
 
-        {/* Assigned Inspections Header */}
+        {/* GATC Laboratory Endorsement Queue (When active officer is GATC) */}
+        {(currentOfficer.role === 'GATC' || currentOfficer.id === 'GATC-01') && (
+          <View style={styles.gatcSectionCard}>
+            <View style={styles.gatcSectionHeader}>
+              <Text style={{ fontSize: 24, marginRight: 10 }}>🔬</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.gatcSectionTitle}>
+                  GATC Laboratory Endorsement Queue ({pendingGatcList.length})
+                </Text>
+                <Text style={styles.gatcSectionSub}>
+                  Physical field verification passed by Legal Metrology Officers. Review calibration test records and issue Form VI Certificate with live QR code.
+                </Text>
+              </View>
+            </View>
+
+            {pendingGatcList.length === 0 ? (
+              <View style={styles.emptyGatcBox}>
+                <Text style={{ fontSize: 24, marginBottom: 4 }}>🔬</Text>
+                <Text style={styles.emptyGatcTitle}>No Instruments Awaiting GATC Endorsement</Text>
+                <Text style={styles.emptyGatcSub}>
+                  When an LMO field officer completes physical testing and clicks "Pass to GATC Centre", verified instruments appear here immediately for certificate issuance.
+                </Text>
+              </View>
+            ) : (
+              <View style={{ gap: 10, marginTop: 10 }}>
+                {pendingGatcList.map((insp) => (
+                  <View key={insp.id} style={styles.gatcItemCard}>
+                    <View style={styles.gatcItemTop}>
+                      <View style={styles.gatcItemPill}>
+                        <Text style={styles.gatcItemPillText}>INSP: {insp.id}</Text>
+                      </View>
+                      <View style={styles.gatcPassedBadge}>
+                        <Text style={styles.gatcPassedBadgeText}>✓ LMO VERIFIED</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.gatcItemModel}>{insp.instrument?.model || 'Measuring Instrument'}</Text>
+                    <Text style={styles.gatcItemSub}>
+                      ID: {insp.instrumentId} • Serial: {insp.instrument?.serialNumber || 'SN-REG'} • {insp.instrument?.category || 'Weighing Scale'}
+                    </Text>
+
+                    {/* Official LMO Field Certificate Banner & Details for GATC */}
+                    <View style={styles.gatcLmoCertBox}>
+                      <View style={styles.gatcLmoCertTopRow}>
+                        <Text style={styles.gatcLmoCertBadge}>📜 LMO FIELD CERTIFICATE</Text>
+                        <Text style={styles.gatcLmoSealBadge}>🔒 {insp.lmoCertificate?.sealNumber || 'TS-SEAL-VERIFIED'}</Text>
+                      </View>
+                      <Text style={styles.gatcLmoCertNumberText}>
+                        Cert No: <Text style={{ fontWeight: '800', color: Colors.primaryNavy }}>{insp.lmoCertificate?.certificateNumber || `LMO-CERT-TS-2026-${insp.id}`}</Text>
+                      </Text>
+                      <Text style={styles.gatcLmoOfficerText}>
+                        Certified & Stamped by: ⚖️ {insp.officer?.name} ({insp.officer?.badgeNumber || insp.officerId})
+                      </Text>
+                      <View style={styles.gatcTestStatsRow}>
+                        <Text style={styles.gatcTestStat}>Std: {insp.standardWeight || insp.lmoCertificate?.standardWeight || '50.0 kg'}</Text>
+                        <Text style={styles.gatcTestStat}>Ind: {insp.indicatedValue || insp.lmoCertificate?.indicatedValue || '50.005 kg'}</Text>
+                        <Text style={[styles.gatcTestStat, { color: '#059669', fontWeight: '700' }]}>Err: {insp.errorMargin || insp.lmoCertificate?.errorMargin || '0.00%'} (PASS)</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.gatcButtonsRow}>
+                      <TouchableOpacity
+                        style={styles.inspectLmoBtn}
+                        onPress={() => {
+                          setSelectedLmoCert(insp.lmoCertificate || {
+                            certificateNumber: `LMO-CERT-TS-2026-${insp.id}`,
+                            sealNumber: 'TS-SEAL-VERIFIED',
+                            instrumentId: insp.instrumentId,
+                            instrumentModel: insp.instrument?.model,
+                            category: insp.instrument?.category,
+                            ownerName: insp.assignment?.owner?.businessName || insp.assignment?.owner?.name || 'Registered Trader',
+                            issueDate: insp.startedAt ? String(insp.startedAt).split('T')[0] : '2026-09-06',
+                            officerName: insp.officer?.name || 'V. Ramanathan',
+                            officerBadge: insp.officer?.badgeNumber || 'LMO-TS-HYD-041',
+                            officerDesignation: insp.officer?.designation || 'Legal Metrology Officer',
+                            standardWeight: insp.standardWeight || '50 kg',
+                            indicatedValue: insp.indicatedValue || '50.005 kg',
+                            errorMargin: insp.errorMargin || '+5 g',
+                            toleranceLimit: insp.toleranceLimit || '±10 g',
+                            status: 'CERTIFIED_BY_LMO_PASSED_TO_GATC',
+                            gatcTargetLab: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+                            remarks: insp.remarks,
+                          });
+                          setInspectingInspId(insp.id);
+                          setLmoCertModalVisible(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.inspectLmoBtnText}>🔍 Inspect LMO Certificate</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.endorseBtn, endorsingId === insp.id && { opacity: 0.7 }]}
+                        onPress={() => handleGatcEndorse(insp.id)}
+                        disabled={endorsingId === insp.id}
+                        activeOpacity={0.85}
+                      >
+                        {endorsingId === insp.id ? (
+                          <ActivityIndicator color={Colors.textWhite} size="small" />
+                        ) : (
+                          <Text style={styles.endorseBtnText}>
+                            🔬 Laboratory Endorse & Issue Form VI ›
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Assigned Workload Header */}
         <View style={styles.sectionHeaderRow}>
           <View>
-            <Text style={styles.sectionTitle}>My Assigned Inspections</Text>
+            <Text style={styles.sectionTitle}>My Assigned Verifications</Text>
             <Text style={styles.sectionSubtitle}>
-              Showing only verifications assigned to {currentOfficer.name}
+              Assignments registered strictly for {currentOfficer.name} ({currentOfficer.id})
             </Text>
           </View>
           <TouchableOpacity
@@ -253,151 +398,302 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Real DB Assigned Inspections List */}
+        {/* Workload Segmented Tabs: Single vs Bulk vs Map */}
+        <View style={styles.workloadTabsRow}>
+          <TouchableOpacity
+            style={[styles.workloadTab, activeTab === 'single' && styles.workloadTabActive]}
+            onPress={() => setActiveTab('single')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.workloadTabText, activeTab === 'single' && styles.workloadTabTextActive]}>
+              🎯 Single ({assignments.filter((a) => !a.batchId && !a.bulkRequestId).length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.workloadTab, activeTab === 'bulk' && styles.workloadTabActive]}
+            onPress={() => setActiveTab('bulk')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.workloadTabText, activeTab === 'bulk' && styles.workloadTabTextActive]}>
+              📦 Bulk ({assignments.filter((a) => a.batchId || a.bulkRequestId).length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.workloadTab, activeTab === 'map' && styles.workloadTabActive]}
+            onPress={() => setActiveTab('map')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.workloadTabText, activeTab === 'map' && styles.workloadTabTextActive]}>
+              🗺️ Territory Map
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Content Area for Selected Tab */}
         {loading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="small" color={Colors.primaryNavy} />
             <Text style={styles.loadingText}>Fetching assigned work from MySQL...</Text>
           </View>
-        ) : assignments.length === 0 ? (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>📋</Text>
-            <Text style={styles.emptyTitle}>No Pending Assignments</Text>
-            <Text style={styles.emptySubtitle}>
-              No instruments are currently assigned to {currentOfficer.name}. When the Smart Allocation
-              Engine or Administrator allocates requests to this officer account, they will appear here.
-            </Text>
+        ) : activeTab === 'single' ? (
+          /* ================= SINGLE VERIFICATIONS TAB ================= */
+          assignments.filter((a) => !a.batchId && !a.bulkRequestId).length === 0 ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyIcon}>📋</Text>
+              <Text style={styles.emptyTitle}>No Single Assignments</Text>
+              <Text style={styles.emptySubtitle}>
+                No single-instrument verification requests are currently assigned to {currentOfficer.name}. When the Smart Allocation Engine allocates requests to this account, they will appear here.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.inspectionsList}>
+              {assignments
+                .filter((a) => !a.batchId && !a.bulkRequestId)
+                .map((item) => {
+                  const inst = item.instrument;
+                  const owner = item.owner;
+                  const app = item.application;
+
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.inspectionCard}
+                      onPress={() =>
+                        navigation.navigate('FieldVerification', {
+                          assignmentId: item.id,
+                          instrumentId: item.instrumentId,
+                          assignment: item,
+                          isOfflineMode,
+                        })
+                      }
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.inspectionTopRow}>
+                        <View style={styles.slotPill}>
+                          <Text style={styles.slotText}>📅 Scheduled: {item.scheduledDate}</Text>
+                        </View>
+                        <StatusBadge status={item.status} size="sm" />
+                      </View>
+
+                      <View style={styles.idRow}>
+                        <Text style={styles.idBadge}>ID: {item.instrumentId}</Text>
+                        {app?.id && <Text style={styles.appBadge}>App: {app.id}</Text>}
+                      </View>
+
+                      <Text style={styles.instrumentName}>{inst ? inst.model : 'Measuring Instrument'}</Text>
+                      <Text style={styles.instrumentSpec}>
+                        {inst?.category || 'Weighing Scale'} • Serial: {inst?.serialNumber || 'N/A'} • Capacity: {inst?.capacity || 'Standard'}
+                      </Text>
+
+                      <View style={styles.cardDivider} />
+
+                      <View style={styles.locationRow}>
+                        <Text style={styles.ownerText}>🏢 {owner?.businessName || owner?.name || 'Owner'}</Text>
+                        {owner?.phone ? (
+                          <TouchableOpacity
+                            style={styles.callButton}
+                            onPress={(e: any) => {
+                              e?.stopPropagation?.();
+                              handleMakeCall(owner.phone);
+                            }}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={styles.callButtonText}>📞 Call {owner.phone}</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <Text style={styles.phoneText}>📞 No phone</Text>
+                        )}
+                      </View>
+                      <Text style={styles.addressLine} numberOfLines={2}>
+                        📍 {inst?.location || owner?.address || 'Trading premises'}
+                      </Text>
+
+                      <View style={styles.verifyActionRow}>
+                        <Text style={styles.verifyActionText}>
+                          {item.status === 'IN_PROGRESS'
+                            ? 'Continue Physical Inspection ›'
+                            : item.status === 'COMPLETED'
+                            ? 'View Completed Record ›'
+                            : item.status === 'PASSED_TO_GATC'
+                            ? '✓ Passed to GATC Central Lab ›'
+                            : 'Start Field Verification ›'}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+            </View>
+          )
+        ) : activeTab === 'bulk' ? (
+          /* ================= BULK DEPLOYMENTS TAB ================= */
+          <View style={styles.bulkOfficerContainer}>
+            {/* Bulk Team Mission Banner */}
+            <View style={styles.bulkOfficerBanner}>
+              <Text style={styles.bulkOfficerBannerTitle}>📦 Multi-Officer Bulk Batch Deployment</Text>
+              <Text style={styles.bulkOfficerBannerSub}>
+                You are deployed as part of an enforcement fleet. Multi-instrument orders are divided evenly across officers for parallel physical inspection.
+              </Text>
+
+              <View style={styles.collaboratorsBox}>
+                <Text style={styles.collaboratorsTitle}>👥 Active Authenticated Officer:</Text>
+                <Text style={styles.collaboratorsList}>
+                  ★ {currentOfficer.name} ({currentOfficer.badgeNumber || currentOfficer.id}) • {currentOfficer.jurisdiction || currentOfficer.district || 'Hyderabad Zone'}
+                </Text>
+                <Text style={styles.gatcCollabNote}>
+                  🔬 Next Stage: Verification passes directly to GATC Central Lab for Certificate Issuance
+                </Text>
+              </View>
+            </View>
+
+            {assignments.filter((a) => a.batchId || a.bulkRequestId).length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyIcon}>📦</Text>
+                <Text style={styles.emptyTitle}>No Bulk Batches Assigned</Text>
+                <Text style={styles.emptySubtitle}>
+                  When an administrator auto-splits a multi-instrument bulk order across the officer fleet, your sub-batch allocation will appear here.
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.inspectionsList}>
+                {assignments
+                  .filter((a) => a.batchId || a.bulkRequestId)
+                  .map((item) => {
+                    const inst = item.instrument;
+                    const owner = item.owner;
+                    const batch = item.batch;
+
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[styles.inspectionCard, { borderColor: '#93C5FD' }]}
+                        onPress={() =>
+                          navigation.navigate('FieldVerification', {
+                            assignmentId: item.id,
+                            instrumentId: item.instrumentId,
+                            assignment: item,
+                            isOfflineMode,
+                          })
+                        }
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.inspectionTopRow}>
+                          <View style={[styles.slotPill, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+                            <Text style={[styles.slotText, { color: '#1D4ED8' }]}>
+                              📦 {batch?.batchName || 'Sub-Batch Assignment'}
+                            </Text>
+                          </View>
+                          <StatusBadge status={item.status} size="sm" />
+                        </View>
+
+                        <View style={styles.idRow}>
+                          <Text style={styles.idBadge}>ID: {item.instrumentId}</Text>
+                          {item.batchId && (
+                            <Text style={[styles.appBadge, { backgroundColor: '#EDE9FE', color: '#6D28D9' }]}>
+                              Batch: {item.batchId}
+                            </Text>
+                          )}
+                        </View>
+
+                        <Text style={styles.instrumentName}>{inst ? inst.model : 'Measuring Instrument'}</Text>
+                        <Text style={styles.instrumentSpec}>
+                          {inst?.category || 'Weighing Scale'} • Serial: {inst?.serialNumber || 'N/A'} • Capacity: {inst?.capacity || 'Standard'}
+                        </Text>
+
+                        <View style={styles.quotaPillRow}>
+                          <Text style={styles.quotaPillText}>
+                            🎯 Sub-Batch Quota: Unit from {batch?.totalCount || 25}-unit partition
+                          </Text>
+                        </View>
+
+                        <View style={styles.cardDivider} />
+
+                        <View style={styles.locationRow}>
+                          <Text style={styles.ownerText}>🏢 {owner?.businessName || owner?.name || 'Bulk Applicant'}</Text>
+                          {owner?.phone ? (
+                            <TouchableOpacity
+                              style={styles.callButton}
+                              onPress={(e: any) => {
+                                e?.stopPropagation?.();
+                                handleMakeCall(owner.phone);
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={styles.callButtonText}>📞 Call {owner.phone}</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <Text style={styles.phoneText}>📞 No phone</Text>
+                          )}
+                        </View>
+                        <Text style={styles.addressLine} numberOfLines={2}>
+                          📍 {inst?.location || owner?.address || 'Trading premises'}
+                        </Text>
+
+                        <View style={styles.verifyActionRow}>
+                          <Text style={styles.verifyActionText}>
+                            {item.status === 'IN_PROGRESS'
+                              ? 'Continue Physical Inspection ›'
+                              : item.status === 'COMPLETED'
+                              ? 'View Completed Record ›'
+                              : item.status === 'PASSED_TO_GATC'
+                              ? '✓ Passed to GATC Central Lab ›'
+                              : 'Start Field Verification ›'}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+              </View>
+            )}
           </View>
         ) : (
-          <View style={styles.inspectionsList}>
-            {assignments.map((item) => {
-              const inst = item.instrument;
-              const owner = item.owner;
-              const app = item.application;
-
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.inspectionCard}
-                  onPress={() =>
-                    navigation.navigate('FieldVerification', {
-                      assignmentId: item.id,
-                      instrumentId: item.instrumentId,
-                      assignment: item,
-                      isOfflineMode,
-                    })
-                  }
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.inspectionTopRow}>
-                    <View style={styles.slotPill}>
-                      <Text style={styles.slotText}>📅 Scheduled: {item.scheduledDate}</Text>
-                    </View>
-                    <StatusBadge status={item.status} size="sm" />
-                  </View>
-
-                  <View style={styles.idRow}>
-                    <Text style={styles.idBadge}>ID: {item.instrumentId}</Text>
-                    {app?.id && <Text style={styles.appBadge}>App: {app.id}</Text>}
-                  </View>
-
-                  <Text style={styles.instrumentName}>{inst ? inst.model : 'Measuring Instrument'}</Text>
-                  <Text style={styles.instrumentSpec}>
-                    {inst?.category || 'Weighing Scale'} • Serial: {inst?.serialNumber || 'N/A'} • Capacity: {inst?.capacity || 'Standard'}
-                  </Text>
-
-                  <View style={styles.cardDivider} />
-
-                  <View style={styles.locationRow}>
-                    <Text style={styles.ownerText}>🏢 {owner?.businessName || owner?.name || 'Owner'}</Text>
-                    {owner?.phone ? (
-                      <TouchableOpacity
-                        style={styles.callButton}
-                        onPress={(e: any) => {
-                          e?.stopPropagation?.();
-                          handleMakeCall(owner.phone);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.callButtonText}>📞 Call {owner.phone}</Text>
-                      </TouchableOpacity>
-                    ) : (
-                      <Text style={styles.phoneText}>📞 No phone</Text>
-                    )}
-                  </View>
-                  <Text style={styles.addressLine} numberOfLines={2}>
-                    📍 {inst?.location || owner?.address || 'Trading premises'}
-                  </Text>
-
-                  <View style={styles.verifyActionRow}>
-                    <Text style={styles.verifyActionText}>
-                      {item.status === 'IN_PROGRESS'
-                        ? 'Continue Physical Inspection ›'
-                        : item.status === 'COMPLETED'
-                        ? 'View Completed Record ›'
-                        : 'Start Field Verification ›'}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          /* ================= TERRITORY MAP VIEW ================= */
+          <OfficerMapView
+            assignments={assignments}
+            officerDistrict={currentOfficer.district}
+            onSelectInspection={(item) => {}}
+            onStartVerification={(item) =>
+              navigation.navigate('FieldVerification', {
+                assignmentId: item.id,
+                instrumentId: item.instrumentId,
+                assignment: item,
+                isOfflineMode,
+              })
+            }
+          />
         )}
       </ScrollView>
 
-      {/* Officer Switcher Modal */}
-      <Modal
-        visible={officerModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setOfficerModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setOfficerModalVisible(false)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Officer Account</Text>
-            <Text style={styles.modalSubtitle}>
-              Switch officer to view only work assigned to that authenticated badge in MySQL:
-            </Text>
+      {/* LMO Field Certificate Inspection Modal for GATC */}
+      <LmoCertificateModal
+        visible={lmoCertModalVisible}
+        certificate={selectedLmoCert}
+        isGatcView={true}
+        onClose={() => {
+          setLmoCertModalVisible(false);
+          setSelectedLmoCert(null);
+          setInspectingInspId(null);
+        }}
+        onEndorseByGatc={() => {
+          const id = inspectingInspId;
+          setLmoCertModalVisible(false);
+          setSelectedLmoCert(null);
+          setInspectingInspId(null);
+          if (id) {
+            handleGatcEndorse(id);
+          }
+        }}
+      />
 
-            {OFFICER_ACCOUNTS.map((off) => (
-              <TouchableOpacity
-                key={off.id}
-                style={[
-                  styles.officerChoiceBtn,
-                  currentOfficer.id === off.id && styles.officerChoiceSelected,
-                ]}
-                onPress={() => handleSwitchOfficerAccount(off.id)}
-              >
-                <View>
-                  <Text
-                    style={[
-                      styles.choiceName,
-                      currentOfficer.id === off.id && styles.choiceNameSelected,
-                    ]}
-                  >
-                    {off.name} ({off.id})
-                  </Text>
-                  <Text style={styles.choiceZone}>
-                    Role: {off.role} • Jurisdiction: {off.zone}
-                  </Text>
-                </View>
-                {currentOfficer.id === off.id && <Text style={styles.checkMark}>✓</Text>}
-              </TouchableOpacity>
-            ))}
-
-            <TouchableOpacity
-              style={styles.modalCloseBtn}
-              onPress={() => setOfficerModalVisible(false)}
-            >
-              <Text style={styles.modalCloseText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      {/* Form VI Certificate Modal on GATC Endorsement */}
+      {endorsedCert && (
+        <CertificateModal
+          visible={certModalVisible}
+          onClose={() => setCertModalVisible(false)}
+          certificate={endorsedCert}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -449,7 +745,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.textPrimary,
   },
-  switchOfficerBtn: {
+  officerBadgePill: {
     backgroundColor: '#EFF6FF',
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -457,9 +753,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#BFDBFE',
   },
-  switchOfficerText: {
+  officerBadgePillText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.primaryNavy,
   },
   officerDesignation: {
@@ -700,71 +996,280 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.accentAmber,
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+  gatcSectionCard: {
+    backgroundColor: '#FAF5FF',
+    borderWidth: 1.5,
+    borderColor: '#D8B4FE',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 16,
   },
-  modalContent: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-  modalSubtitle: {
-    fontSize: 12,
-    color: Colors.textMuted,
-    marginTop: 4,
-    marginBottom: 14,
-  },
-  officerChoiceBtn: {
+  gatcSectionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 8,
+    alignItems: 'flex-start',
+  },
+  gatcSectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#6B21A8',
+    marginBottom: 4,
+  },
+  gatcSectionSub: {
+    fontSize: 11,
+    color: '#7E22CE',
+    lineHeight: 16,
+  },
+  emptyGatcBox: {
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 8,
+    borderColor: '#E9D5FF',
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 10,
   },
-  officerChoiceSelected: {
-    backgroundColor: '#EFF6FF',
-    borderColor: Colors.primaryNavy,
+  emptyGatcTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6B21A8',
+    marginBottom: 2,
   },
-  choiceName: {
+  emptyGatcSub: {
+    fontSize: 11,
+    color: '#9333EA',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  gatcItemCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    borderRadius: 8,
+    padding: 12,
+  },
+  gatcItemTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  gatcItemPill: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  gatcItemPillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#7E22CE',
+  },
+  gatcPassedBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  gatcPassedBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#15803D',
+  },
+  gatcItemModel: {
     fontSize: 13,
     fontWeight: '700',
     color: Colors.textPrimary,
   },
-  choiceNameSelected: {
-    color: Colors.primaryNavy,
+  gatcItemSub: {
+    fontSize: 10.5,
+    color: Colors.textSecondary,
+    marginTop: 1,
   },
-  choiceZone: {
+  gatcLmoInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  gatcLmoLabel: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
+    marginRight: 4,
+  },
+  gatcLmoValue: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: Colors.primaryNavy,
+    fontWeight: '700',
+  },
+  gatcTestStatsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 6,
+  },
+  gatcTestStat: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  gatcLmoCertBox: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+  },
+  gatcLmoCertTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  gatcLmoCertBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+    letterSpacing: 0.5,
+  },
+  gatcLmoSealBadge: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#047857',
+  },
+  gatcLmoCertNumberText: {
+    fontSize: 11,
+    color: '#334155',
+    marginBottom: 2,
+  },
+  gatcLmoOfficerText: {
+    fontSize: 10.5,
+    color: '#475569',
+    marginBottom: 4,
+  },
+  gatcButtonsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  inspectLmoBtn: {
+    flex: 1,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inspectLmoBtnText: {
+    color: '#1D4ED8',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  endorseBtn: {
+    flex: 1.3,
+    backgroundColor: '#7C3AED',
+    paddingVertical: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  endorseBtnText: {
+    color: Colors.textWhite,
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  workloadTabsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  workloadTab: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+  },
+  workloadTabActive: {
+    backgroundColor: Colors.primaryNavy,
+    borderColor: Colors.primaryNavy,
+  },
+  workloadTabText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  workloadTabTextActive: {
+    color: Colors.textWhite,
+    fontWeight: '800',
+  },
+  bulkOfficerContainer: {
     marginTop: 2,
   },
-  checkMark: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.primaryNavy,
+  bulkOfficerBanner: {
+    backgroundColor: '#0F172A',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
   },
-  modalCloseBtn: {
-    marginTop: 8,
-    alignItems: 'center',
-    padding: 10,
-  },
-  modalCloseText: {
+  bulkOfficerBannerTitle: {
     fontSize: 13,
+    fontWeight: '800',
+    color: '#38BDF8',
+    marginBottom: 4,
+  },
+  bulkOfficerBannerSub: {
+    fontSize: 10.5,
+    color: '#94A3B8',
+    lineHeight: 15,
+  },
+  collaboratorsBox: {
+    backgroundColor: '#1E293B',
+    borderRadius: 6,
+    padding: 8,
+    marginTop: 8,
+  },
+  collaboratorsTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#E2E8F0',
+    marginBottom: 2,
+  },
+  collaboratorsList: {
+    fontSize: 10.5,
     fontWeight: '600',
-    color: Colors.textMuted,
+    color: '#F8FAFC',
+    lineHeight: 14,
+  },
+  gatcCollabNote: {
+    fontSize: 10,
+    color: '#C084FC',
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  quotaPillRow: {
+    backgroundColor: '#F0FDF4',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  quotaPillText: {
+    color: '#15803D',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });

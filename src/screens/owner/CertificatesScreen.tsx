@@ -51,12 +51,15 @@ export const CertificatesScreen: React.FC<CertificatesScreenProps> = ({
             issuedDate: c.issueDate,
             validUntil: c.validUntil,
             issuingAuthority: 'Directorate of Legal Metrology, Government of Telangana',
-            officerName: c.officerName,
+            officerName: c.officerName || 'Legal Metrology Officer',
             verificationStandard: 'Legal Metrology Act, 2009 (Rule 14)',
             verificationFee: '₹500',
             securityHash: c.id,
             qrPayload: c.qrCodeData,
             status: c.status === 'ACTIVE' ? 'Active' : 'Expired',
+            gatcLabName: c.gatcLabName || 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+            gatcApproved: c.gatcApproved !== undefined ? Boolean(c.gatcApproved) : true,
+            gatcApprovalDate: c.gatcApprovalDate || c.issueDate,
           }));
           setCertificatesList(mapped);
         }
@@ -124,7 +127,7 @@ export const CertificatesScreen: React.FC<CertificatesScreenProps> = ({
           <View style={styles.noticeTextCol}>
             <Text style={styles.noticeTitle}>Statutory Verification Certificates</Text>
             <Text style={styles.noticeDesc}>
-              Certificates certify a specific verification event under Rule 14, Legal Metrology (General) Rules, 2011. Each document contains an authentic QR code for field officer inspection.
+              Certificates certify a specific verification event under Rule 14, Legal Metrology (General) Rules, 2011. Each document is verified by Field LMO and endorsed by GATC Central Testing Lab with authentic QR codes.
             </Text>
           </View>
         </View>
@@ -155,25 +158,30 @@ export const CertificatesScreen: React.FC<CertificatesScreenProps> = ({
                   <StatusBadge status={cert.status} size="sm" />
                 </View>
 
+                {/* GATC Laboratory Endorsement Badge */}
+                <View style={styles.gatcEndorsedBadgeRow}>
+                  <Text style={styles.gatcEndorsedBadgeText}>
+                    🔬 GATC CENTRAL LAB ENDORSED • FORM VI
+                  </Text>
+                </View>
+
                 <View style={styles.divider} />
 
                 {/* Metadata details */}
                 <View style={styles.certBody}>
                   <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Issuing Authority:</Text>
-                    <Text style={styles.infoValue} numberOfLines={1}>
-                      {cert.issuingAuthority}
-                    </Text>
+                    <Text style={styles.infoLabel}>Verifying LMO:</Text>
+                    <Text style={styles.infoValue}>⚖️ {cert.officerName}</Text>
+                  </View>
+                  <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Endorsing Lab:</Text>
+                    <Text style={styles.infoValue}>🔬 {(cert as any).gatcLabName || 'State Central Metrology Lab'}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Standard Rule:</Text>
                     <Text style={styles.infoValue} numberOfLines={1}>
                       {cert.verificationStandard}
                     </Text>
-                  </View>
-                  <View style={styles.infoRow}>
-                    <Text style={styles.infoLabel}>Verifying Officer:</Text>
-                    <Text style={styles.infoValue}>{cert.officerName}</Text>
                   </View>
                   <View style={styles.infoRow}>
                     <Text style={styles.infoLabel}>Validity Period:</Text>
@@ -183,14 +191,14 @@ export const CertificatesScreen: React.FC<CertificatesScreenProps> = ({
                   </View>
                 </View>
 
-                {/* Single Action: View Certificate (PDF download available inside viewer) */}
+                {/* Actions: View Full Digital Certificate & QR */}
                 <View style={styles.cardActionsRow}>
                   <TouchableOpacity
                     style={styles.viewCertBtn}
                     onPress={() => setSelectedCert(cert)}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.viewCertBtnText}>View Certificate (Form VI) ›</Text>
+                    <Text style={styles.viewCertBtnText}>View Digital Certificate & QR Code ›</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -356,5 +364,22 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: 12,
     fontWeight: '600'
-  }
+  },
+  gatcEndorsedBadgeRow: {
+    backgroundColor: '#FAF5FF',
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 6,
+    marginBottom: 2,
+    alignSelf: 'flex-start',
+  },
+  gatcEndorsedBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#7E22CE',
+    letterSpacing: 0.3,
+  },
 });

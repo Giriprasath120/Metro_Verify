@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,10 @@ import {
   TextInput,
   SafeAreaView,
   Alert,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { GovHeader } from '../../components/GovHeader';
-import { mockInstruments, Instrument } from '../../../data/mockData';
 import { Colors } from '../../theme/colors';
 import { calculateVerificationFee } from '../../config/pricing';
 import { API_ENDPOINTS } from '../../config/api';
@@ -31,92 +31,53 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
 
   const [requestMode, setRequestMode] = useState<'single' | 'bulk'>('single');
 
-  // Instruments live state
-  const [instruments, setInstruments] = useState<Instrument[]>(() =>
-    currentOwnerId === 'OWN-101' ? mockInstruments.filter(i => i.ownerId === 'OWN-101') : []
-  );
-
-  const fetchInstruments = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_ENDPOINTS.instruments}?ownerId=${currentOwnerId}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.instruments && Array.isArray(data.instruments)) {
-          setInstruments(data.instruments);
-        }
-      }
-    } catch {
-      // offline fallback
-    }
-  }, [currentOwnerId]);
-
-  useEffect(() => {
-    fetchInstruments();
-    const unsubscribe = navigation.addListener('focus', () => {
-      fetchInstruments();
-    });
-    return unsubscribe;
-  }, [navigation, fetchInstruments]);
-
   // Single form state
-  const [selectionMode, setSelectionMode] = useState<'existing' | 'new'>('existing');
-  const [selectedInstId, setSelectedInstId] = useState(instruments[0]?.id || 'INST-TS-01');
-
-  // New instrument entry fields
-  const [newModel, setNewModel] = useState('Essae Precision Bench Scale');
-  const [newSerial, setNewSerial] = useState('SN-2026-7842');
-  const [newCategory, setNewCategory] = useState('Non-Automatic Weighing Instrument');
-  const [newCapacity, setNewCapacity] = useState('50 kg');
-  const [newAccuracyClass, setNewAccuracyClass] = useState('Class III');
-  const [newLocation, setNewLocation] = useState(
+  const [model, setModel] = useState('Essae Precision Bench Scale');
+  const [serial, setSerial] = useState('SN-2026-7842');
+  const [category, setCategory] = useState('Non-Automatic Weighing Instrument');
+  const [capacity, setCapacity] = useState('50 kg');
+  const [location, setLocation] = useState(
     activeUser?.address || (activeUser?.district ? `${activeUser.district}, ${activeUser.state || 'Telangana'}` : 'Bowenpally Agricultural Wholesale Yard')
   );
-
-  const [preferredDate, setPreferredDate] = useState('2026-09-18');
-  const [preferredTimeSlot, setPreferredTimeSlot] = useState('10:00 AM - 01:00 PM');
   const [remarks, setRemarks] = useState('Annual mandatory statutory re-verification');
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [submittingSingle, setSubmittingSingle] = useState(false);
   const [singleSuccess, setSingleSuccess] = useState<any | null>(null);
 
-  // Find selected instrument object
-  const selectedInstrument = useMemo(() => {
-    return instruments.find(i => i.id === selectedInstId) || instruments[0];
-  }, [instruments, selectedInstId]);
+  // Hidden file input ref for camera / image selection on Web
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Dynamically compute fee based on chosen instrument category and accuracy class
+  const handleTriggerCamera = () => {
+    if (Platform.OS === 'web' && fileInputRef.current) {
+      fileInputRef.current.click();
+    } else {
+      Alert.alert('Camera Capture', 'Camera capture initialized.');
+    }
+  };
+
+  const handleFileChange = (e: any) => {
+    const file = e.target?.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCapturedPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Dynamically compute statutory fee based on chosen category
   const dynamicFeeBreakdown = useMemo(() => {
-    if (selectionMode === 'new') {
-      return calculateVerificationFee(newCategory, newAccuracyClass);
-    }
-    if (!selectedInstrument) {
-      return calculateVerificationFee('Non-Automatic Weighing Instrument');
-    }
-    return calculateVerificationFee(selectedInstrument.category, selectedInstrument.accuracyClass);
-  }, [selectionMode, newCategory, newAccuracyClass, selectedInstrument]);
+    return calculateVerificationFee(category, 'Class III');
+  }, [category]);
 
   // Bulk form state
   const [bulkFacilityName, setBulkFacilityName] = useState('Bowenpally Agricultural Wholesale Yard');
-  const [selectedBulkIds, setSelectedBulkIds] = useState<string[]>(
-    instruments.map(i => i.id)
-  );
   const [bulkCategory, setBulkCategory] = useState('Non-Automatic Weighing Instrument');
-  const [bulkCountInput, setBulkCountInput] = useState(String(instruments.length || 10));
-  const [bulkPreferredDate, setBulkPreferredDate] = useState('2026-09-25');
+  const [bulkCountInput, setBulkCountInput] = useState('100');
   const [bulkRemarks, setBulkRemarks] = useState('Bulk pre-procurement weighing verification');
   const [submittingBulk, setSubmittingBulk] = useState(false);
   const [bulkSuccess, setBulkSuccess] = useState<any | null>(null);
-
-  const toggleSelectBulkItem = (id: string) => {
-    if (selectedBulkIds.includes(id)) {
-      const next = selectedBulkIds.filter(i => i !== id);
-      setSelectedBulkIds(next);
-      setBulkCountInput(String(next.length || 1));
-    } else {
-      const next = [...selectedBulkIds, id];
-      setSelectedBulkIds(next);
-      setBulkCountInput(String(next.length));
-    }
-  };
 
   // Bulk dynamic fee calculation
   const bulkTotalCount = parseInt(bulkCountInput, 10) || 1;
@@ -125,46 +86,31 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
   }, [bulkCategory]);
   const bulkEstimatedTotal = bulkUnitFee.totalFee * bulkTotalCount;
 
-  // Single Submission
+  // Single Submission (Automatic scheduling by Dept)
   const handleSingleSubmit = async () => {
-    if (selectionMode === 'existing' && !selectedInstrument) {
-      Alert.alert('Selection Required', 'Please select an instrument to verify.');
-      return;
-    }
-    if (selectionMode === 'new' && !newModel.trim()) {
+    if (!model.trim()) {
       Alert.alert('Model Name Required', 'Please enter the model or equipment name.');
-      return;
-    }
-    if (!preferredDate) {
-      Alert.alert('Date Required', 'Please select a preferred inspection date.');
       return;
     }
 
     setSubmittingSingle(true);
 
-    const payload = selectionMode === 'new' ? {
+    const autoScheduledDate = new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0];
+    const autoTimeSlot = '10:00 AM - 01:00 PM';
+
+    const payload = {
       instrumentId: 'NEW',
-      instrumentName: newModel.trim(),
-      serialNumber: newSerial.trim() || `SN-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      instrumentName: model.trim(),
+      serialNumber: serial.trim() || `SN-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       ownerId: currentOwnerId,
-      category: newCategory,
-      capacity: newCapacity,
-      accuracyClass: newAccuracyClass,
-      preferredDate,
-      preferredTimeSlot,
-      location: newLocation,
-      remarks
-    } : {
-      instrumentId: selectedInstrument.id,
-      instrumentName: selectedInstrument.model,
-      ownerId: currentOwnerId,
-      category: selectedInstrument.category,
-      capacity: selectedInstrument.capacity,
-      accuracyClass: selectedInstrument.accuracyClass || 'Class III',
-      preferredDate,
-      preferredTimeSlot,
-      location: selectedInstrument.location,
-      remarks
+      category,
+      capacity,
+      accuracyClass: 'Class III',
+      preferredDate: autoScheduledDate,
+      preferredTimeSlot: autoTimeSlot,
+      location,
+      remarks,
+      photoUrl: capturedPhoto || undefined,
     };
 
     try {
@@ -177,8 +123,6 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
       if (res.ok) {
         const data = await res.json();
         setSingleSuccess(data.application);
-        // Refresh instruments registry immediately
-        fetchInstruments();
       } else {
         const errData = await res.json().catch(() => ({}));
         Alert.alert('Submission Error', errData.error || 'Failed to submit request to database.');
@@ -187,7 +131,7 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
       console.error('Submission failed:', err);
       Alert.alert(
         'Connection Error',
-        'Could not reach Metro Verify backend server on http://localhost:4000. Please ensure server is running.'
+        'Could not reach Metro Verify backend server on http://localhost:4000.'
       );
     } finally {
       setSubmittingSingle(false);
@@ -203,14 +147,15 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
 
     setSubmittingBulk(true);
 
+    const autoScheduledDate = new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0];
+
     const payload = {
       ownerId: currentOwnerId,
       facilityName: bulkFacilityName,
       category: bulkCategory,
       instrumentCount: bulkTotalCount,
-      selectedInstrumentIds: selectedBulkIds,
       district: activeUser?.district || 'Hyderabad North',
-      preferredDate: bulkPreferredDate,
+      preferredDate: autoScheduledDate,
       remarks: bulkRemarks
     };
 
@@ -230,7 +175,10 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
       }
     } catch (err: any) {
       console.error('Bulk submission failed:', err);
-      Alert.alert('Connection Error', 'Could not reach Metro Verify backend server on http://localhost:4000.');
+      Alert.alert(
+        'Connection Error',
+        'Could not reach Metro Verify backend server on http://localhost:4000.'
+      );
     } finally {
       setSubmittingBulk(false);
     }
@@ -239,14 +187,26 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
   return (
     <SafeAreaView style={styles.safeArea}>
       <GovHeader
-        title="New Verification Request"
-        subtitle="Apply for Statutory Stamping & Calibration"
-        roleLabel="Owner Actions"
+        title="Verification Application"
+        subtitle="Directorate of Legal Metrology • Statutory Service Gateway"
+        roleLabel="Service Request"
         onSwitchRole={onSwitchRole}
       />
 
+      {/* Hidden Web Input for Camera Capture */}
+      {Platform.OS === 'web' && (
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          ref={fileInputRef as any}
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+      )}
+
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Toggle Mode: Single vs Bulk */}
+        {/* Top Mode Segmented Switcher */}
         <View style={styles.toggleContainer}>
           <TouchableOpacity
             style={[styles.toggleBtn, requestMode === 'single' && styles.toggleBtnActive]}
@@ -257,7 +217,7 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
             }}
           >
             <Text style={[styles.toggleText, requestMode === 'single' && styles.toggleTextActive]}>
-              Single Instrument
+              🎯 Single Instrument
             </Text>
           </TouchableOpacity>
 
@@ -271,10 +231,10 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
           >
             <View style={styles.bulkTagRow}>
               <Text style={[styles.toggleText, requestMode === 'bulk' && styles.toggleTextActive]}>
-                Bulk Verification
+                📦 Bulk Verification
               </Text>
               <View style={styles.clusterPill}>
-                <Text style={styles.clusterPillText}>BATCH</Text>
+                <Text style={styles.clusterPillText}>MULTI-UNIT</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -320,9 +280,6 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                   <Text style={styles.summaryLabel}>Registry Status:</Text>
                   <Text style={styles.summaryValStatus}>SCHEDULED IN REGISTRY</Text>
                 </View>
-                {singleSuccess.ruleReference && (
-                  <Text style={styles.summaryRuleText}>⚖️ {singleSuccess.ruleReference}</Text>
-                )}
               </View>
 
               <View style={styles.actionButtonsCol}>
@@ -344,172 +301,114 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
           ) : (
             /* Single Input Form */
             <View style={styles.formCard}>
-              <Text style={styles.formTitle}>Single Verification Form</Text>
-              <Text style={styles.formSubtitle}>
-                Apply for statutory calibration & stamping for an individual instrument
-              </Text>
-
-              {/* Toggle Registered vs New Equipment */}
-              <View style={styles.subToggleRow}>
-                <TouchableOpacity
-                  style={[styles.subToggleChip, selectionMode === 'existing' && styles.subToggleChipActive]}
-                  onPress={() => setSelectionMode('existing')}
-                >
-                  <Text style={[styles.subToggleChipText, selectionMode === 'existing' && styles.subToggleChipTextActive]}>
-                    📋 Registered Equipment ({instruments.length})
+              <View style={styles.formHeaderRow}>
+                <View>
+                  <Text style={styles.formTitle}>Single Instrument Verification</Text>
+                  <Text style={styles.formSubtitle}>
+                    Apply for statutory calibration & stamping for an individual instrument
                   </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.subToggleChip, selectionMode === 'new' && styles.subToggleChipActive]}
-                  onPress={() => setSelectionMode('new')}
-                >
-                  <Text style={[styles.subToggleChipText, selectionMode === 'new' && styles.subToggleChipTextActive]}>
-                    ➕ Register New Equipment
-                  </Text>
-                </TouchableOpacity>
+                </View>
               </View>
 
-              {selectionMode === 'existing' ? (
-                <>
-                  <Text style={styles.inputLabel}>Select Instrument from Your Registry</Text>
-                  <View style={styles.instrumentSelector}>
-                    {instruments.map(item => {
-                      const isSelected = item.id === selectedInstId;
-                      const itemFee = calculateVerificationFee(item.category, item.accuracyClass);
-
-                      return (
-                        <TouchableOpacity
-                          key={item.id}
-                          style={[styles.selectOption, isSelected && styles.selectOptionActive]}
-                          onPress={() => setSelectedInstId(item.id)}
-                          activeOpacity={0.7}
-                        >
-                          <View style={styles.radioCircle}>
-                            {isSelected && <View style={styles.radioInner} />}
-                          </View>
-                          <View style={styles.selectTextCol}>
-                            <View style={styles.optionHeaderRow}>
-                              <Text style={[styles.selectOptionTitle, isSelected && styles.textBold]}>
-                                {item.model}
-                              </Text>
-                              <Text style={styles.unitFeeTag}>₹ {itemFee.totalFee.toLocaleString('en-IN')}</Text>
-                            </View>
-                            <View style={styles.optionSubRow}>
-                              <View style={styles.idBadgeHighlight}>
-                                <Text style={styles.idBadgeIcon}>🏷️</Text>
-                                <Text style={styles.idBadgeLabel}>UID:</Text>
-                                <Text style={styles.idBadgeValue}>{item.id}</Text>
-                              </View>
-                              <Text style={styles.selectOptionSub}>
-                                {item.category} • Expiry: {item.expiryDate}
-                              </Text>
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </>
-              ) : (
-                /* New Equipment Input Fields */
-                <View style={styles.newEquipmentContainer}>
-                  <Text style={styles.inputLabel}>Model / Equipment Make</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={newModel}
-                    onChangeText={setNewModel}
-                    placeholder="e.g. Avery Weigh-Tronix 50T Pitless"
-                  />
-
-                  <Text style={styles.inputLabel}>Serial / Machine Number</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={newSerial}
-                    onChangeText={setNewSerial}
-                    placeholder="e.g. SN-2026-9481"
-                  />
-
-                  <Text style={styles.inputLabel}>Instrument Category</Text>
-                  <View style={styles.categoryChipsGrid}>
-                    {[
-                      'Non-Automatic Weighing Instrument',
-                      'Electronic Weighbridge',
-                      'Fuel Dispenser / Flow Meter',
-                      'Automatic Gravimetric Filling Instrument'
-                    ].map(cat => (
-                      <TouchableOpacity
-                        key={cat}
-                        style={[styles.catChip, newCategory === cat && styles.catChipActive]}
-                        onPress={() => setNewCategory(cat)}
-                      >
-                        <Text style={[styles.catChipText, newCategory === cat && styles.catChipTextActive]}>
-                          {cat}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  <View style={styles.twoColRow}>
-                    <View style={styles.colHalf}>
-                      <Text style={styles.inputLabel}>Capacity</Text>
-                      <TextInput
-                        style={styles.textInput}
-                        value={newCapacity}
-                        onChangeText={setNewCapacity}
-                        placeholder="e.g. 50 kg or 60 Tonnes"
-                      />
-                    </View>
-                    <View style={styles.colHalf}>
-                      <Text style={styles.inputLabel}>Accuracy Class</Text>
-                      <View style={styles.classChipsRow}>
-                        {['Class II', 'Class III', 'Class IV'].map(cls => (
-                          <TouchableOpacity
-                            key={cls}
-                            style={[styles.classChip, newAccuracyClass === cls && styles.classChipActive]}
-                            onPress={() => setNewAccuracyClass(cls)}
-                          >
-                            <Text style={[styles.classChipText, newAccuracyClass === cls && styles.classChipTextActive]}>
-                              {cls}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-                  </View>
-
-                  <Text style={styles.inputLabel}>Physical Premises Location</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={newLocation}
-                    onChangeText={setNewLocation}
-                    placeholder="e.g. Gate 3, Bowenpally Wholesale Mandi"
-                  />
-                </View>
-              )}
-
-              <Text style={styles.inputLabel}>Preferred Inspection Date</Text>
+              {/* Equipment Model Name */}
+              <Text style={styles.inputLabel}>Model / Equipment Make</Text>
               <TextInput
                 style={styles.textInput}
-                value={preferredDate}
-                onChangeText={setPreferredDate}
-                placeholder="YYYY-MM-DD"
+                value={model}
+                onChangeText={setModel}
+                placeholder="e.g. Essae Precision Bench Scale"
               />
 
-              <Text style={styles.inputLabel}>Preferred Inspection Time Slot</Text>
-              <View style={styles.slotRow}>
-                {['10:00 AM - 01:00 PM', '02:00 PM - 05:00 PM'].map(slot => (
+              {/* Serial Number */}
+              <Text style={styles.inputLabel}>Serial / Machine Number</Text>
+              <TextInput
+                style={styles.textInput}
+                value={serial}
+                onChangeText={setSerial}
+                placeholder="e.g. SN-2026-7842"
+              />
+
+              {/* Category Chips */}
+              <Text style={styles.inputLabel}>Instrument Category</Text>
+              <View style={styles.categoryChipsGrid}>
+                {[
+                  'Non-Automatic Weighing Instrument',
+                  'Electronic Weighbridge',
+                  'Fuel Dispenser / Flow Meter',
+                  'Automatic Gravimetric Filling Instrument'
+                ].map(cat => (
                   <TouchableOpacity
-                    key={slot}
-                    style={[styles.slotChip, preferredTimeSlot === slot && styles.slotChipActive]}
-                    onPress={() => setPreferredTimeSlot(slot)}
+                    key={cat}
+                    style={[styles.catChip, category === cat && styles.catChipActive]}
+                    onPress={() => setCategory(cat)}
                   >
-                    <Text style={[styles.slotText, preferredTimeSlot === slot && styles.slotTextActive]}>
-                      {slot}
+                    <Text style={[styles.catChipText, category === cat && styles.catChipTextActive]}>
+                      {cat}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
 
+              {/* Capacity & Location */}
+              <Text style={styles.inputLabel}>Capacity</Text>
+              <TextInput
+                style={styles.textInput}
+                value={capacity}
+                onChangeText={setCapacity}
+                placeholder="e.g. 50 kg or 60 Tonnes"
+              />
+
+              <Text style={styles.inputLabel}>Physical Premises Location</Text>
+              <TextInput
+                style={styles.textInput}
+                value={location}
+                onChangeText={setLocation}
+                placeholder="e.g. Bowenpally Agricultural Wholesale Yard"
+              />
+
+              {/* CAMERA / PHOTO CAPTURE FEATURE */}
+              <Text style={styles.inputLabel}>Instrument Physical Photo (Statutory Record)</Text>
+              {capturedPhoto ? (
+                <View style={styles.photoPreviewCard}>
+                  <Image
+                    source={{ uri: capturedPhoto }}
+                    style={styles.previewImage}
+                    resizeMode="cover"
+                  />
+                  {/* Official Metrology Stamp Overlay */}
+                  <View style={styles.photoStampOverlay}>
+                    <View style={styles.stampHeader}>
+                      <Text style={styles.stampIcon}>🏛️</Text>
+                      <Text style={styles.stampTitle}>LEGAL METROLOGY ACT - REGISTERED EQUIPMENT PHOTO</Text>
+                    </View>
+                    <Text style={styles.stampMeta}>Model: {model} • SN: {serial}</Text>
+                    <Text style={styles.stampTime}>Timestamp: {new Date().toLocaleDateString('en-IN')} • Verified Secure</Text>
+                  </View>
+
+                  <View style={styles.photoActionRow}>
+                    <TouchableOpacity style={styles.retakeBtn} onPress={handleTriggerCamera}>
+                      <Text style={styles.retakeBtnText}>📸 Retake Photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.removePhotoBtn} onPress={() => setCapturedPhoto(null)}>
+                      <Text style={styles.removePhotoBtnText}>🗑️ Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.cameraCaptureBox}
+                  onPress={handleTriggerCamera}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 32, marginBottom: 6 }}>📷</Text>
+                  <Text style={styles.cameraBoxTitle}>Capture Equipment Photo</Text>
+                  <Text style={styles.cameraBoxSub}>
+                    Tap to use device camera or upload image of the measuring instrument for statutory verification records
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Remarks */}
               <Text style={styles.inputLabel}>Remarks / Special Instructions</Text>
               <TextInput
                 style={[styles.textInput, styles.textArea]}
@@ -517,10 +416,10 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 onChangeText={setRemarks}
                 multiline
                 numberOfLines={2}
-                placeholder="e.g. Weighbridge pit accessible via Gate 2"
+                placeholder="e.g. Scale is accessible at counter 4"
               />
 
-              {/* DYNAMIC FEE BREAKDOWN SECTION (Schedule IX) */}
+              {/* DYNAMIC FEE BREAKDOWN */}
               <View style={styles.feeBreakdownBox}>
                 <View style={styles.feeHeaderRow}>
                   <Text style={styles.feeTitle}>Statutory Fee Schedule (Dynamic)</Text>
@@ -558,7 +457,7 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
             </View>
           )
         ) : (
-          /* ================= BULK FORM & PROGRESS ================= */
+          /* ================= BULK FORM ================= */
           bulkSuccess ? (
             /* Bulk Success Card */
             <View style={styles.successCard}>
@@ -573,26 +472,14 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 Bulk verification request for {bulkSuccess.instrumentCount} instruments recorded.
               </Text>
 
-              {/* Progress Monitor */}
-              <View style={styles.progressMonitorBox}>
-                <View style={styles.progressMonitorHeader}>
-                  <Text style={styles.progressMonitorTitle}>Batch Verification Progress</Text>
-                  <Text style={styles.progressMonitorCount}>0 / {bulkSuccess.instrumentCount} Verified</Text>
-                </View>
-                <View style={styles.progressBarTrack}>
-                  <View style={[styles.progressBarFill, { width: '0%' }]} />
-                </View>
-                <Text style={styles.progressMonitorCaption}>Status: PENDING_ALLOCATION</Text>
-              </View>
-
               <View style={styles.summaryBox}>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Facility:</Text>
                   <Text style={styles.summaryVal}>{bulkFacilityName}</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Target Date:</Text>
-                  <Text style={styles.summaryVal}>{bulkSuccess.preferredDate}</Text>
+                  <Text style={styles.summaryLabel}>Total Quantity:</Text>
+                  <Text style={styles.summaryValHighlight}>{bulkSuccess.instrumentCount} Units</Text>
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Total Estimated Fee:</Text>
@@ -623,7 +510,7 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
             <View style={styles.formCard}>
               <Text style={styles.formTitle}>Bulk Verification Submission</Text>
               <Text style={styles.formSubtitle}>
-                Request inspection for multiple scales across Mandis, Warehouses, or Supermarkets
+                Request parallel inspection for multiple scales across Mandis, Warehouses, or Supermarkets
               </Text>
 
               <Text style={styles.inputLabel}>Facility / Premises Location</Text>
@@ -660,46 +547,25 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 value={bulkCountInput}
                 onChangeText={setBulkCountInput}
                 keyboardType="numeric"
-                placeholder="e.g. 15"
+                placeholder="e.g. 250 (up to 5,000 units)"
               />
 
-              <Text style={styles.inputLabel}>Select Registered Instruments (Optional Checklist)</Text>
-              <View style={styles.bulkChecklist}>
-                {instruments.map((item: Instrument) => {
-                  const isChecked = selectedBulkIds.includes(item.id);
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[styles.checkOption, isChecked && styles.checkOptionActive]}
-                      onPress={() => toggleSelectBulkItem(item.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.checkbox, isChecked && styles.checkboxActive]}>
-                        {isChecked && <Text style={styles.checkmark}>✓</Text>}
-                      </View>
-                      <View style={styles.checkTextCol}>
-                        <Text style={styles.checkTitle}>{item.model}</Text>
-                        <View style={styles.optionSubRow}>
-                          <View style={styles.idBadgeHighlight}>
-                            <Text style={styles.idBadgeIcon}>🏷️</Text>
-                            <Text style={styles.idBadgeLabel}>UID:</Text>
-                            <Text style={styles.idBadgeValue}>{item.id}</Text>
-                          </View>
-                          <Text style={styles.checkSub}>• {item.location}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+              {/* Quick Count Selection Chips */}
+              <View style={styles.quickCountRow}>
+                <Text style={styles.quickCountLabel}>Quick Fleet Size:</Text>
+                {[25, 50, 100, 250, 500, 1000].map(qty => (
+                  <TouchableOpacity
+                    key={qty}
+                    style={[styles.quickCountChip, bulkCountInput === String(qty) && styles.quickCountChipActive]}
+                    onPress={() => setBulkCountInput(String(qty))}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.quickCountText, bulkCountInput === String(qty) && styles.quickCountTextActive]}>
+                      {qty} Units
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-
-              <Text style={styles.inputLabel}>Preferred Date for Bulk Inspection Visit</Text>
-              <TextInput
-                style={styles.textInput}
-                value={bulkPreferredDate}
-                onChangeText={setBulkPreferredDate}
-                placeholder="YYYY-MM-DD"
-              />
 
               <Text style={styles.inputLabel}>Batch Notes / Instructions</Text>
               <TextInput
@@ -714,18 +580,33 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
               {/* Dynamic Bulk Fee Box */}
               <View style={styles.feeBreakdownBox}>
                 <View style={styles.feeHeaderRow}>
-                  <Text style={styles.feeTitle}>Bulk Fee Calculation</Text>
-                  <Text style={styles.feeLawBadge}>{bulkTotalCount} Units</Text>
+                  <Text style={styles.feeTitle}>Bulk Fee Calculation (Dynamic)</Text>
+                  <Text style={styles.feeLawBadge}>{bulkTotalCount} Units Total</Text>
                 </View>
                 <Text style={styles.feeRuleDescription}>{bulkUnitFee.ruleReference}</Text>
                 <View style={styles.feeRow}>
                   <Text style={styles.feeLabel}>Statutory Unit Fee</Text>
                   <Text style={styles.feeVal}>₹ {bulkUnitFee.totalFee.toLocaleString('en-IN')} / unit</Text>
                 </View>
+                <View style={styles.feeRow}>
+                  <Text style={styles.feeLabel}>Base Verification (per machine)</Text>
+                  <Text style={styles.feeVal}>₹ {bulkUnitFee.statutoryFee.toLocaleString('en-IN')}</Text>
+                </View>
+                <View style={styles.feeRow}>
+                  <Text style={styles.feeLabel}>Haulage / Standards Surcharge</Text>
+                  <Text style={styles.feeVal}>₹ {bulkUnitFee.haulageFee.toLocaleString('en-IN')}</Text>
+                </View>
                 <View style={styles.feeDivider} />
                 <View style={styles.feeRowTotal}>
-                  <Text style={styles.feeTotalLabel}>Estimated Total Statutory Challan</Text>
+                  <Text style={styles.feeTotalLabel}>Total Estimated Statutory Challan</Text>
                   <Text style={styles.feeTotalVal}>₹ {bulkEstimatedTotal.toLocaleString('en-IN')}.00</Text>
+                </View>
+
+                {/* Multi-Officer Allocation Note */}
+                <View style={styles.fleetAllocationNoteBox}>
+                  <Text style={styles.fleetAllocationNoteText}>
+                    ⚡ <Text style={{ fontWeight: '800' }}>Smart Fleet Division:</Text> Upon submission, admin will auto-split these {bulkTotalCount} machines evenly across the 4 active Legal Metrology Officers (approx. {Math.ceil(bulkTotalCount / 4)} units each) for simultaneous field testing.
+                  </Text>
                 </View>
               </View>
 
@@ -759,7 +640,7 @@ const styles = StyleSheet.create({
   toggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#E2E8F0',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 3,
     marginBottom: 16
   },
@@ -768,266 +649,224 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6
+    borderRadius: 8
   },
   toggleBtnActive: {
-    backgroundColor: Colors.surface,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2
+    backgroundColor: Colors.primaryNavy
   },
   toggleText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: Colors.textSecondary
   },
   toggleTextActive: {
-    color: Colors.primaryNavy
+    color: '#FFFFFF'
   },
   bulkTagRow: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    gap: 6
   },
   clusterPill: {
-    backgroundColor: Colors.accentAmber,
-    paddingHorizontal: 5,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: 4,
-    marginLeft: 6
+    borderRadius: 4
   },
   clusterPillText: {
-    color: Colors.textWhite,
-    fontSize: 8,
-    fontWeight: '800'
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#B45309'
   },
   formCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 10,
+    borderRadius: 12,
+    padding: 18,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: 16
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2
+  },
+  formHeaderRow: {
+    marginBottom: 16
   },
   formTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
-    color: Colors.textPrimary
+    color: Colors.primaryNavy
   },
   formSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.textSecondary,
-    marginTop: 2,
-    marginBottom: 14
+    marginTop: 2
   },
   inputLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: Colors.textPrimary,
-    marginTop: 10,
-    marginBottom: 6
+    marginTop: 14,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   textInput: {
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 6,
+    borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 9,
+    paddingVertical: 10,
     fontSize: 13,
     color: Colors.textPrimary
   },
   textArea: {
-    height: 60,
+    minHeight: 60,
     textAlignVertical: 'top'
   },
-  instrumentSelector: {
-    gap: 8,
-    marginBottom: 6
-  },
-  selectOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: '#FFFFFF'
-  },
-  selectOptionActive: {
-    borderColor: Colors.primaryNavy,
-    backgroundColor: '#F0F9FF'
-  },
-  radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.primaryNavy
-  },
-  selectTextCol: {
-    flex: 1
-  },
-  optionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  selectOptionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textPrimary
-  },
-  unitFeeTag: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#047857'
-  },
-  textBold: {
-    fontWeight: '800',
-    color: Colors.primaryNavy
-  },
-  selectOptionSub: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginTop: 2
-  },
-  slotRow: {
-    flexDirection: 'row',
-    gap: 8
-  },
-  slotChip: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 6,
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC'
-  },
-  slotChipActive: {
-    backgroundColor: Colors.primaryNavy,
-    borderColor: Colors.primaryNavy
-  },
-  slotText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary
-  },
-  slotTextActive: {
-    color: Colors.textWhite,
-    fontWeight: '700'
-  },
-  categoryPillsRow: {
+  categoryChipsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6
+    gap: 8
   },
-  catPill: {
+  catChip: {
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
     borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: '#CBD5E1'
   },
-  catPillActive: {
+  catChipActive: {
     backgroundColor: Colors.primaryNavy,
     borderColor: Colors.primaryNavy
   },
-  catPillText: {
+  catChipText: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: Colors.textPrimary,
     fontWeight: '600'
   },
-  catPillTextActive: {
-    color: Colors.textWhite,
-    fontWeight: '700'
+  catChipTextActive: {
+    color: '#FFFFFF'
   },
-  bulkChecklist: {
-    gap: 6,
-    marginBottom: 6
-  },
-  checkOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: '#FFFFFF'
-  },
-  checkOptionActive: {
-    borderColor: Colors.primaryNavy,
-    backgroundColor: '#F8FAFC'
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 4,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+  cameraCaptureBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#93C5FD',
+    borderStyle: 'dashed',
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10
+    cursor: 'pointer' as any,
   },
-  checkboxActive: {
-    backgroundColor: Colors.primaryNavy,
-    borderColor: Colors.primaryNavy
+  cameraBoxTitle: {
+    color: Colors.primaryNavy,
+    fontSize: 14,
+    fontWeight: '700',
   },
-  checkmark: {
-    color: Colors.textWhite,
+  cameraBoxSub: {
+    color: '#64748B',
     fontSize: 11,
-    fontWeight: 'bold'
+    textAlign: 'center',
+    marginTop: 4,
+    maxWidth: 380,
   },
-  checkTextCol: {
-    flex: 1
+  photoPreviewCard: {
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#334155',
   },
-  checkTitle: {
+  previewImage: {
+    width: '100%',
+    height: 180,
+  },
+  photoStampOverlay: {
+    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    padding: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#334155',
+  },
+  stampHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  stampIcon: {
     fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textPrimary
   },
-  checkSub: {
+  stampTitle: {
+    color: '#38BDF8',
     fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 1
+    fontWeight: '800',
+  },
+  stampMeta: {
+    color: '#F8FAFC',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  stampTime: {
+    color: '#94A3B8',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  photoActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 8,
+    backgroundColor: '#1E293B',
+  },
+  retakeBtn: {
+    backgroundColor: '#0284C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  retakeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  removePhotoBtn: {
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  removePhotoBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   feeBreakdownBox: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    padding: 12,
-    marginTop: 14,
-    marginBottom: 14
+    padding: 14,
+    marginTop: 18
   },
   feeHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 2
+    marginBottom: 4
   },
   feeTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.primaryNavy
   },
   feeLawBadge: {
     fontSize: 9,
-    fontWeight: '700',
-    color: Colors.primaryNavy,
-    backgroundColor: '#E0F2FE',
+    fontWeight: '800',
+    color: '#1E40AF',
+    backgroundColor: '#DBEAFE',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4
@@ -1035,13 +874,12 @@ const styles = StyleSheet.create({
   feeRuleDescription: {
     fontSize: 10,
     color: '#64748B',
-    fontStyle: 'italic',
-    marginBottom: 8
+    marginBottom: 10
   },
   feeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 2
+    marginVertical: 3
   },
   feeLabel: {
     fontSize: 11,
@@ -1054,7 +892,7 @@ const styles = StyleSheet.create({
   },
   feeDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#CBD5E1',
     marginVertical: 8
   },
   feeRowTotal: {
@@ -1064,37 +902,41 @@ const styles = StyleSheet.create({
   },
   feeTotalLabel: {
     fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontWeight: '800',
+    color: Colors.primaryNavy
   },
   feeTotalVal: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
     color: '#047857'
   },
   submitBtn: {
     backgroundColor: Colors.primaryNavy,
-    paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 10,
+    paddingVertical: 14,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 4
+    marginTop: 18,
+    shadowColor: Colors.primaryNavy,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3
+  },
+  submitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800'
   },
   btnDisabled: {
     opacity: 0.6
   },
-  submitBtnText: {
-    color: Colors.textWhite,
-    fontSize: 13,
-    fontWeight: '700'
-  },
   successCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#6EE7B7',
+    borderRadius: 12,
     padding: 20,
-    alignItems: 'center'
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#10B981'
   },
   successBadge: {
     flexDirection: 'row',
@@ -1102,28 +944,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECFDF5',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    marginBottom: 10
+    borderRadius: 20,
+    marginBottom: 12
   },
   successIcon: {
-    color: '#059669',
+    color: '#047857',
     fontWeight: '900',
-    fontSize: 14,
     marginRight: 6
   },
   successTitle: {
-    color: '#065F46',
+    color: '#047857',
     fontWeight: '800',
     fontSize: 12
   },
   appIdResult: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: Colors.primaryNavy,
-    marginBottom: 4
+    marginBottom: 6
   },
   successBatchNumber: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: Colors.accentAmber,
     marginBottom: 6
@@ -1132,64 +973,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 16
-  },
-  progressMonitorBox: {
-    width: '100%',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    padding: 12,
-    marginBottom: 14
-  },
-  progressMonitorHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6
-  },
-  progressMonitorTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textPrimary
-  },
-  progressMonitorCount: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textSecondary
-  },
-  progressBarTrack: {
-    height: 8,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginVertical: 4
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 4
-  },
-  progressMonitorCaption: {
-    fontSize: 10,
-    color: '#64748B',
-    marginTop: 4,
-    fontStyle: 'italic'
+    marginBottom: 16
   },
   summaryBox: {
     width: '100%',
     backgroundColor: '#F8FAFC',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
     padding: 12,
-    marginBottom: 16
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 3
+    alignItems: 'center',
+    marginVertical: 4
   },
   summaryLabel: {
     fontSize: 11,
@@ -1203,94 +1002,27 @@ const styles = StyleSheet.create({
   summaryValHighlight: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#047857'
+    color: Colors.accentAmber
   },
   summaryValStatus: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#D97706'
-  },
-  summaryRuleText: {
     fontSize: 10,
-    color: '#64748B',
-    fontStyle: 'italic',
-    marginTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingTop: 6
-  },
-  actionButtonsCol: {
-    width: '100%',
-    gap: 8
-  },
-  primaryActionBtn: {
-    backgroundColor: Colors.primaryNavy,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center'
-  },
-  primaryActionText: {
-    color: Colors.textWhite,
-    fontSize: 13,
-    fontWeight: '700'
-  },
-  secondaryActionBtn: {
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#CBD5E1'
-  },
-  secondaryActionText: {
-    color: Colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '600'
-  },
-  subToggleRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 12
-  },
-  subToggleChip: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0'
-  },
-  subToggleChipActive: {
-    backgroundColor: Colors.primaryNavy,
-    borderColor: Colors.primaryNavy
-  },
-  subToggleChipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textSecondary
-  },
-  subToggleChipTextActive: {
-    color: Colors.textWhite,
-    fontWeight: '700'
-  },
-  optionSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 3,
-    flexWrap: 'wrap'
+    fontWeight: '800',
+    color: '#047857',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4
   },
   idBadgeHighlight: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EFF6FF',
-    borderWidth: 1.5,
-    borderColor: '#2563EB',
-    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#93C5FD',
+    borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
-    gap: 3
+    gap: 4
   },
   idBadgeIcon: {
     fontSize: 10
@@ -1298,84 +1030,108 @@ const styles = StyleSheet.create({
   idBadgeLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#1E40AF',
-    letterSpacing: 0.5
+    color: '#1E40AF'
   },
   idBadgeValue: {
     fontSize: 11,
     fontWeight: '800',
     color: '#1D4ED8',
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    letterSpacing: 0.5
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
   },
-  newEquipmentContainer: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 12,
-    marginBottom: 12,
-    gap: 6
+  actionButtonsCol: {
+    width: '100%',
+    gap: 8
   },
-  categoryChipsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 6
-  },
-  catChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border
-  },
-  catChipActive: {
+  primaryActionBtn: {
     backgroundColor: Colors.primaryNavy,
-    borderColor: Colors.primaryNavy
-  },
-  catChipText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary
-  },
-  catChipTextActive: {
-    color: Colors.textWhite,
-    fontWeight: '700'
-  },
-  twoColRow: {
-    flexDirection: 'row',
-    gap: 10
-  },
-  colHalf: {
-    flex: 1
-  },
-  classChipsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 2
-  },
-  classChip: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
+    borderRadius: 8,
+    paddingVertical: 12,
     alignItems: 'center'
   },
-  classChipActive: {
+  primaryActionText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13
+  },
+  secondaryActionBtn: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center'
+  },
+  secondaryActionText: {
+    color: Colors.textPrimary,
+    fontWeight: '600',
+    fontSize: 13
+  },
+  categoryPillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  catPill: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1'
+  },
+  catPillActive: {
     backgroundColor: Colors.primaryNavy,
     borderColor: Colors.primaryNavy
   },
-  classChipText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary
+  catPillText: {
+    fontSize: 11,
+    color: Colors.textPrimary,
+    fontWeight: '600'
   },
-  classChipTextActive: {
-    color: Colors.textWhite,
-    fontWeight: '700'
+  catPillTextActive: {
+    color: '#FFFFFF'
+  },
+  quickCountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8
+  },
+  quickCountLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B'
+  },
+  quickCountChip: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#CBD5E1'
+  },
+  quickCountChipActive: {
+    backgroundColor: Colors.accentAmber,
+    borderColor: '#D97706'
+  },
+  quickCountText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569'
+  },
+  quickCountTextActive: {
+    color: '#0B2545',
+    fontWeight: '800'
+  },
+  fleetAllocationNoteBox: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 6,
+    padding: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE'
+  },
+  fleetAllocationNoteText: {
+    fontSize: 10,
+    color: '#1E40AF',
+    lineHeight: 14
   }
 });

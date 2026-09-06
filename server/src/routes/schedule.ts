@@ -179,16 +179,24 @@ router.post('/allocate-balanced', async (req: Request, res: Response) => {
       });
     }
 
-    // Fetch all active officers
-    const officers = await prisma.officer.findMany({
-      where: { active: true },
+    // Fetch all active field LMO officers (GATC is Stage 2 laboratory endorsement, not field verification)
+    let officers = await prisma.officer.findMany({
+      where: { active: true, role: 'LMO' },
       orderBy: { currentWorkload: 'asc' },
     });
 
     if (officers.length === 0) {
+      // Fallback to any active officer if no specific LMO role flagged
+      officers = await prisma.officer.findMany({
+        where: { active: true },
+        orderBy: { currentWorkload: 'asc' },
+      });
+    }
+
+    if (officers.length === 0) {
       return res.status(400).json({
         success: false,
-        error: 'No active officers found in database to allocate to.',
+        error: 'No active field officers found in database to allocate to.',
       });
     }
 

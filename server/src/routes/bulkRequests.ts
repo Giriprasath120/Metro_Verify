@@ -132,6 +132,92 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/bulk-requests/:id/auto-split-allocate - Automatically split bulk request evenly across all available LMO officers
+router.post('/:id/auto-split-allocate', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const bulk = await prisma.bulkRequest.findFirst({
+      where: { OR: [{ id }, { bulkBatchNumber: id }] },
+      include: { batches: true },
+    });
+
+    if (!bulk) {
+      return res.status(404).json({ success: false, error: 'Bulk request not found' });
+    }
+
+    if (bulk.batches && bulk.batches.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `Bulk request ${bulk.id} has already been split into ${bulk.batches.length} batches.`,
+      });
+    }
+
+    // Retrieve active LMO officers (field officers)
+    const lmoOfficers = await prisma.officer.findMany({
+      where: { role: 'LMO', active: true },
+      orderBy: { id: 'asc' },
+    });
+
+    if (lmoOfficers.length === 0) {
+      return res.status(400).json({ success: false, error: 'No active LMO officers available for assignment' });
+    }
+
+    const totalCount = bulk.instrumentCount;
+    const officerCount = lmoOfficers.length;
+    const basePerOfficer = Math.floor(totalCount / officerCount);
+    let remainder = totalCount % officerCount;
+
+    const officerAllocations = lmoOfficers.map((officer, index) => {
+      const assignedCount = basePerOfficer + (remainder > 0 ? 1 : 0);
+      if (remainder > 0) remainder--;
+
+      const batchLetter = String.fromCharCode(65 + index); // A, B, C, D
+      return {
+        officerId: officer.id,
+        officerName: officer.name,
+        badgeNumber: officer.badgeNumber,
+        count: assignedCount,
+        batchName: `Batch ${batchLetter} (${officer.jurisdiction || officer.district})`,
+      };
+    });
+
+    // Call stored procedure sp_SplitBulkBatch
+    await prisma.$queryRawUnsafe(
+      'CALL sp_SplitBulkBatch(?, ?)',
+      bulk.id,
+      JSON.stringify(officerAllocations)
+    );
+
+    const updated = await prisma.bulkRequest.findUnique({
+      where: { id: bulk.id },
+      include: {
+        batches: {
+          include: {
+            assignments: {
+              include: {
+                instrument: true,
+                assignedOfficer: true,
+              },
+            },
+          },
+        },
+        owner: true,
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: `Bulk request ${bulk.id} (${totalCount} units) evenly split across ${officerCount} LMO officers successfully.`,
+      totalUnits: totalCount,
+      allocations: officerAllocations,
+      bulkRequest: updated,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // POST /api/bulk-requests/:id/split - Atomically split bulk batch via sp_SplitBulkBatch
 router.post('/:id/split', async (req: Request, res: Response) => {
   try {
@@ -180,6 +266,7 @@ router.post('/:id/split', async (req: Request, res: Response) => {
     return res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 // PATCH /api/bulk-requests/:id/progress - Update progress/status
 router.patch('/:id/progress', async (req: Request, res: Response) => {

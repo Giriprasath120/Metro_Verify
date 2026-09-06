@@ -38,7 +38,7 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
     {
       id: 'msg-0',
       sender: 'assistant',
-      text: `Namaste ${activeUser?.name || 'Trader'} ji. I am Metro Assistant, your Legal Metrology AI advisor. I have access to your registered equipment (${activeUser?.businessName || 'your business'}), verification applications, and certificates. How can I help you today?`,
+      text: `Greetings ${activeUser?.name || 'Trader'}! I am Metro Assistant, your Legal Metrology AI advisor. I have access to your registered equipment (${activeUser?.businessName || 'your business'}), verification applications, and certificates. How can I help you today?`,
       timestamp: 'Just now',
       source: 'gemini-api'
     }
