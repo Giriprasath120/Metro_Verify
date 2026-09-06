@@ -1,0 +1,572 @@
+openapi: 3.0.3
+info:
+  title: Metro Verify API
+  description: >
+    Digital Legal Metrology Verification & Lifecycle Management Platform (SIH26036).
+    Covers Owner, Administrator, and LMO/GATC Officer endpoints, plus the AI chatbot.
+    Endpoints marked "(stored procedure)" call a MySQL stored procedure for an atomic,
+    multi-step operation rather than a plain Prisma query.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:4000
+    description: Local development backend
+
+tags:
+  - name: Auth
+  - name: Owner - Applications
+  - name: Owner - Bulk Requests
+  - name: Owner - Instruments
+  - name: Owner - Certificates
+  - name: Admin - Allocation
+  - name: Admin - Compliance
+  - name: Admin - Dashboard
+  - name: LMO - Assignments
+  - name: LMO - Inspections
+  - name: LMO - Offline Sync
+  - name: AI Chatbot
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Instrument:
+      type: object
+      properties:
+        instrumentId: { type: string, example: "INST-TS-08" }
+        type: { type: string, example: "Non-Automatic Weighing Instrument" }
+        manufacturer: { type: string }
+        model: { type: string }
+        serialNumber: { type: string }
+        ownerId: { type: string }
+        status:
+          type: string
+          enum: [REGISTERED, SCHEDULED, ASSIGNED, IN_PROGRESS, VERIFIED, EXPIRED]
+    Application:
+      type: object
+      properties:
+        applicationId: { type: string, example: "APP-1008" }
+        instrumentId: { type: string }
+        ownerId: { type: string }
+        status:
+          type: string
+          enum: [SUBMITTED, PENDING, ASSIGNED, WITHDRAWN, COMPLETED]
+        assignedOfficerId: { type: string, nullable: true }
+    BulkRequest:
+      type: object
+      properties:
+        bulkRequestId: { type: string, example: "BR-001" }
+        ownerId: { type: string }
+        totalInstruments: { type: integer }
+        status: { type: string, enum: [SUBMITTED, PENDING, IN_PROGRESS, COMPLETED] }
+    Certificate:
+      type: object
+      properties:
+        certificateId: { type: string }
+        applicationId: { type: string }
+        instrumentId: { type: string }
+        certificateNumber: { type: string, example: "IND/LM/TS/26/0147" }
+        qrPayload: { type: string }
+        issuedDate: { type: string, format: date }
+        validUntil: { type: string, format: date }
+    Assignment:
+      type: object
+      properties:
+        assignmentId: { type: string }
+        applicationId: { type: string }
+        instrumentId: { type: string }
+        assignedOfficerId: { type: string }
+        batchId: { type: string, nullable: true }
+        status: { type: string }
+    Inspection:
+      type: object
+      properties:
+        inspectionId: { type: string }
+        assignmentId: { type: string }
+        officerId: { type: string }
+        measurements: { type: object }
+        observations: { type: string }
+        photoUrl: { type: string, nullable: true }
+        latitude: { type: number, nullable: true }
+        longitude: { type: number, nullable: true }
+        capturedAt: { type: string, format: date-time, nullable: true }
+        result: { type: string, enum: [PENDING, PASS, FAIL] }
+        status:
+          type: string
+          enum: [PENDING, SCHEDULED, IN_PROGRESS, COMPLETED, FAILED, REINSPECTION_REQUIRED]
+    ComplianceScore:
+      type: object
+      properties:
+        ownerId: { type: string }
+        score: { type: integer, example: 78 }
+        deductions:
+          type: array
+          items:
+            type: object
+            properties:
+              reason: { type: string, example: "Verification overdue by 40 days" }
+              points: { type: integer, example: -15 }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ---------------- AUTH ----------------
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Owner login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        "200": { description: JWT issued }
+        "401": { description: Invalid credentials, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/auth/officer/login:
+    post:
+      tags: [Auth]
+      summary: LMO/GATC Officer login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                officerIdOrEmail: { type: string, example: "LMO-101" }
+                password: { type: string }
+      responses:
+        "200": { description: JWT issued for the authenticated officer }
+        "401": { description: Invalid credentials, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  # ---------------- OWNER: APPLICATIONS ----------------
+  /api/applications:
+    get:
+      tags: [Owner - Applications]
+      summary: List the logged-in owner's applications
+      responses:
+        "200":
+          description: List of applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Application" }
+    post:
+      tags: [Owner - Applications]
+      summary: Submit a single verification/re-verification request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instrumentId: { type: string }
+                verificationType: { type: string, enum: [VERIFICATION, RE_VERIFICATION] }
+                preferredDate: { type: string, format: date }
+      responses:
+        "201":
+          description: Application created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Application" }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+
+  /api/applications/{id}:
+    get:
+      tags: [Owner - Applications]
+      summary: Get a single application
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Application detail, content: { application/json: { schema: { $ref: "#/components/schemas/Application" } } } }
+        "404": { description: Not found }
+
+  /api/applications/{id}/withdraw:
+    post:
+      tags: [Owner - Applications]
+      summary: Withdraw a submitted application (only if not yet completed)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: "Application status set to WITHDRAWN" }
+        "409": { description: "Cannot withdraw — already completed/certified" }
+
+  # ---------------- OWNER: BULK REQUESTS ----------------
+  /api/bulk-requests:
+    get:
+      tags: [Owner - Bulk Requests]
+      summary: List the logged-in owner's bulk requests
+      responses:
+        "200":
+          description: List of bulk requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BulkRequest" }
+    post:
+      tags: [Owner - Bulk Requests]
+      summary: Submit a bulk verification request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category: { type: string }
+                numberOfItems: { type: integer, example: 25 }
+      responses:
+        "201":
+          description: Bulk request created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BulkRequest" }
+
+  # ---------------- OWNER: INSTRUMENTS ----------------
+  /api/instruments:
+    get:
+      tags: [Owner - Instruments]
+      summary: List the logged-in owner's instruments
+      responses:
+        "200":
+          description: List of instruments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Instrument" }
+    post:
+      tags: [Owner - Instruments]
+      summary: Register a new instrument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Instrument" }
+      responses:
+        "201": { description: Instrument registered, content: { application/json: { schema: { $ref: "#/components/schemas/Instrument" } } } }
+
+  /api/instruments/{id}:
+    get:
+      tags: [Owner - Instruments]
+      summary: Get a single instrument
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Instrument detail, content: { application/json: { schema: { $ref: "#/components/schemas/Instrument" } } } }
+
+  /api/instruments/{id}/passport:
+    get:
+      tags: [Owner - Instruments]
+      summary: Get the Digital Instrument Passport (full lifecycle record — distinct from a Certificate)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Passport with lifecycle timeline events }
+
+  # ---------------- OWNER: CERTIFICATES ----------------
+  /api/certificates/{id}:
+    get:
+      tags: [Owner - Certificates]
+      summary: View a certificate (includes QR payload)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Certificate detail, content: { application/json: { schema: { $ref: "#/components/schemas/Certificate" } } } }
+        "404": { description: Not found }
+
+  /api/certificates/{id}/pdf:
+    get:
+      tags: [Owner - Certificates]
+      summary: Download the certificate as PDF
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  # ---------------- ADMIN: ALLOCATION ----------------
+  /api/schedule/allocate:
+    post:
+      tags: [Admin - Allocation]
+      summary: Run the smart allocation engine and store the assignment (stored procedure — sp_CreateAssignment)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                applicationId: { type: string }
+                officerId: { type: string, description: "Chosen from the engine's ranked suggestions" }
+                batchId: { type: string, nullable: true }
+      responses:
+        "200":
+          description: Assignment created and officer workload updated atomically
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Assignment" }
+
+  /api/bulk-requests/{id}/split:
+    post:
+      tags: [Admin - Allocation]
+      summary: Split a bulk request into batches across officers (stored procedure — sp_SplitBulkBatch)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                officerAllocations:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      officerId: { type: string }
+                      count: { type: integer }
+      responses:
+        "200": { description: Batch and per-officer sub-assignments created as one transaction }
+
+  # ---------------- ADMIN: COMPLIANCE ----------------
+  /api/compliance/{ownerId}/score:
+    get:
+      tags: [Admin - Compliance]
+      summary: Get an owner's compliance health score with explainable deductions (stored procedure — sp_CalculateComplianceScore)
+      parameters:
+        - { name: ownerId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Score and reasons
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ComplianceScore" }
+
+  # ---------------- ADMIN: DASHBOARD ----------------
+  /api/dashboard/{role}:
+    get:
+      tags: [Admin - Dashboard]
+      summary: Get dashboard summary stats for a role (owner, admin, or lmo)
+      parameters:
+        - { name: role, in: path, required: true, schema: { type: string, enum: [owner, admin, lmo] } }
+      responses:
+        "200": { description: Dashboard summary object }
+
+  /api/notifications/expiry-check:
+    post:
+      tags: [Admin - Dashboard]
+      summary: Trigger the expiry-check job that flags instruments nearing re-verification due date
+      responses:
+        "200": { description: Check completed, alerts generated }
+
+  # ---------------- LMO: ASSIGNMENTS ----------------
+  /api/lmo/dashboard:
+    get:
+      tags: [LMO - Assignments]
+      summary: Get the logged-in officer's dashboard counters (Assigned Today, Completed, Remaining, etc.)
+      responses:
+        "200": { description: Counters computed live from real assignment/inspection records }
+
+  /api/lmo/assignments:
+    get:
+      tags: [LMO - Assignments]
+      summary: List assignments belonging ONLY to the logged-in officer (identity taken from JWT, not a query param)
+      responses:
+        "200":
+          description: List of assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Assignment" }
+
+  /api/lmo/batches/{id}:
+    get:
+      tags: [LMO - Assignments]
+      summary: Get a batch and its instrument-level progress, scoped to the logged-in officer's portion
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Batch detail with per-instrument status }
+
+  /api/lmo/instruments/{id}:
+    get:
+      tags: [LMO - Assignments]
+      summary: Get instrument detail for a specific assignment (only if assigned to the logged-in officer)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Instrument detail, content: { application/json: { schema: { $ref: "#/components/schemas/Instrument" } } } }
+        "403": { description: Not assigned to this officer }
+
+  # ---------------- LMO: INSPECTIONS ----------------
+  /api/inspections/{id}/start:
+    post:
+      tags: [LMO - Inspections]
+      summary: Mark an inspection as started (status → IN_PROGRESS)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Inspection marked in progress }
+
+  /api/inspections/{id}/results:
+    post:
+      tags: [LMO - Inspections]
+      summary: Record measurements and observations
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                measurements: { type: object }
+                observations: { type: string }
+      responses:
+        "200": { description: Results recorded }
+
+  /api/inspections/{id}/photos:
+    post:
+      tags: [LMO - Inspections]
+      summary: Attach a captured photo to the inspection/evidence record
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo: { type: string, format: binary }
+      responses:
+        "200": { description: Photo attached }
+
+  /api/inspections/{id}/location:
+    post:
+      tags: [LMO - Inspections]
+      summary: Attach real GPS coordinates and timestamp to the inspection
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                latitude: { type: number }
+                longitude: { type: number }
+                capturedAt: { type: string, format: date-time }
+      responses:
+        "200": { description: Location evidence attached }
+
+  /api/inspections/{id}/complete:
+    post:
+      tags: [LMO - Inspections]
+      summary: >
+        Complete a verification with a PASS result (stored procedure — sp_CompleteVerification).
+        Atomically marks the inspection COMPLETED, sets instrument status VERIFIED,
+        generates the certificate, and updates the officer's counters.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Verification completed, certificate generated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Certificate" }
+
+  /api/inspections/{id}/failure:
+    post:
+      tags: [LMO - Inspections]
+      summary: >
+        Complete a verification with a FAIL result (stored procedure — sp_CompleteVerification).
+        Sets status to FAILED/REINSPECTION_REQUIRED. No certificate is generated.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Marked as failed, no certificate generated }
+
+  /api/inspections/{id}/reinspection:
+    post:
+      tags: [LMO - Inspections]
+      summary: Create a reinspection task for a previously failed instrument
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Reinspection task created }
+
+  # ---------------- LMO: OFFLINE SYNC ----------------
+  /api/offline/sync:
+    post:
+      tags: [LMO - Offline Sync]
+      summary: Sync one or more locally queued offline inspections to the backend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: "#/components/schemas/Inspection" }
+      responses:
+        "200": { description: Records synchronized, duplicates ignored }
+
+  /api/offline/status:
+    get:
+      tags: [LMO - Offline Sync]
+      summary: Get sync status for the logged-in officer's pending offline queue
+      responses:
+        "200": { description: Pending sync count and per-item status }
+
+  # ---------------- AI CHATBOT ----------------
+  /chatbot/query:
+    post:
+      tags: [AI Chatbot]
+      summary: Ask the Gemini-backed assistant a question grounded in the owner's own instrument/certificate data
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ownerId: { type: string }
+                message: { type: string, example: "When does my energy meter certificate expire?" }
+      responses:
+        "200":
+          description: Assistant reply
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply: { type: string }
+        "200_fallback":
+          description: Graceful fallback text if GEMINI_API_KEY is missing (still HTTP 200)

@@ -1,0 +1,221 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Owner {
+  id              String         @id
+  name            String
+  businessName    String
+  type            String         @default("Commercial")
+  email           String
+  phone           String
+  state           String
+  district        String
+  address         String         @db.Text
+  complianceScore Int            @default(100)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  instruments     Instrument[]
+  applications    Application[]
+  bulkRequests    BulkRequest[]
+  assignments     Assignment[]
+  certificates    Certificate[]
+}
+
+model Officer {
+  id              String         @id
+  name            String
+  role            String         // LMO or GATC
+  badgeNumber     String
+  designation     String
+  department      String
+  phone           String
+  email           String         @unique
+  passwordHash    String
+  state           String
+  district        String
+  jurisdiction    String
+  currentWorkload Int            @default(0)
+  maxCapacity     Int            @default(20)
+  rating          Float          @default(4.8)
+  active          Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  assignments     Assignment[]
+  inspections     Inspection[]
+}
+
+model Instrument {
+  id               String         @id
+  serialNumber     String
+  model            String
+  manufacturer     String
+  category         String
+  subCategory      String?
+  capacity         String
+  accuracyClass    String?
+  ownerId          String
+  owner            Owner          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  location         String         @db.Text
+  district         String
+  state            String
+  lastVerifiedDate String?
+  expiryDate       String?
+  status           String         @default("PENDING") // PENDING, SCHEDULED, IN_PROGRESS, VERIFIED, EXPIRING_SOON, EXPIRED, FAILED, REINSPECTION_REQUIRED
+  certificateId    String?
+  scheduledDate    String?
+  timeSlot         String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  applications     Application[]
+  assignments      Assignment[]
+  inspections      Inspection[]
+  certificates     Certificate[]
+}
+
+model Application {
+  id                String         @id
+  instrumentId      String
+  instrument        Instrument     @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  ownerId           String
+  owner             Owner          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  category          String
+  capacity          String?
+  accuracyClass     String?
+  preferredDate     String
+  preferredTimeSlot String?
+  status            String         @default("SUBMITTED") // SUBMITTED, SCHEDULED, IN_REVIEW, WITHDRAWN, COMPLETED, FAILED
+  fee               Float
+  ruleReference     String?
+  location          String         @db.Text
+  remarks           String?        @db.Text
+  submittedAt       DateTime       @default(now())
+  withdrawnAt       DateTime?
+
+  assignments       Assignment[]
+  inspections       Inspection[]
+  certificates      Certificate[]
+}
+
+model BulkRequest {
+  id                 String         @id
+  bulkBatchNumber    String
+  ownerId            String
+  owner              Owner          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  facilityName       String
+  category           String
+  instrumentCount    Int
+  verifiedCount      Int            @default(0)
+  pendingCount       Int            @default(0)
+  failedCount        Int            @default(0)
+  progressPercent    Int            @default(0)
+  status             String         @default("SUBMITTED") // SUBMITTED, IN_PROGRESS, PARTIALLY_COMPLETED, COMPLETED, WITHDRAWN
+  preferredDate      String
+  estimatedFee       Float
+  feeRule            String?
+  remarks            String?        @db.Text
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  batches            Batch[]
+  assignments        Assignment[]
+}
+
+model Batch {
+  id                String         @id
+  batchName         String
+  bulkRequestId     String
+  bulkRequest       BulkRequest    @relation(fields: [bulkRequestId], references: [id], onDelete: Cascade)
+  totalCount        Int
+  completedCount    Int            @default(0)
+  pendingCount      Int
+  status            String         @default("Pending") // Pending, In Progress, Completed, Partially Completed
+  assignedOfficerId String?
+  officerName       String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  assignments       Assignment[]
+}
+
+model Assignment {
+  id                String         @id
+  applicationId     String?
+  application       Application?   @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  instrumentId      String
+  instrument        Instrument     @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  ownerId           String
+  owner             Owner          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  assignedOfficerId String
+  assignedOfficer   Officer        @relation(fields: [assignedOfficerId], references: [id], onDelete: Cascade)
+  batchId           String?
+  batch             Batch?         @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  bulkRequestId     String?
+  bulkRequest       BulkRequest?   @relation(fields: [bulkRequestId], references: [id], onDelete: SetNull)
+  status            String         @default("SCHEDULED") // PENDING, SCHEDULED, IN_PROGRESS, COMPLETED, FAILED, REINSPECTION_REQUIRED
+  scheduledDate     String
+  priority          String         @default("NORMAL")
+  assignedAt        DateTime       @default(now())
+
+  inspections       Inspection[]
+}
+
+model Inspection {
+  id                String         @id
+  assignmentId      String
+  assignment        Assignment     @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  instrumentId      String
+  instrument        Instrument     @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  officerId         String
+  officer           Officer        @relation(fields: [officerId], references: [id], onDelete: Cascade)
+  applicationId     String?
+  application       Application?   @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  startedAt         DateTime       @default(now())
+  completedAt       DateTime?
+  status            String         @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED, FAILED, REINSPECTION_REQUIRED
+  standardWeight    String?
+  indicatedValue    String?
+  errorMargin       String?
+  toleranceLimit    String?
+  result            String?        // PASS, FAIL
+  observations      String?        @db.Text
+  remarks           String?        @db.Text
+  photoReference    String?        @db.LongText
+  latitude          Float?
+  longitude         Float?
+  locationTimestamp String?
+  isOffline         Boolean        @default(false)
+  syncedAt          DateTime?
+
+  certificates      Certificate[]
+}
+
+model Certificate {
+  id                 String         @id
+  certificateNumber  String         @unique
+  instrumentId       String
+  instrument         Instrument     @relation(fields: [instrumentId], references: [id], onDelete: Cascade)
+  ownerId            String
+  owner              Owner          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  applicationId      String?
+  application        Application?   @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  inspectionId       String?
+  inspection         Inspection?    @relation(fields: [inspectionId], references: [id], onDelete: SetNull)
+  issueDate          String
+  validUntil         String
+  officerName        String
+  officerBadge       String
+  officerDesignation String
+  qrCodeData         String         @db.Text
+  pdfPath            String?
+  status             String         @default("ACTIVE") // ACTIVE, EXPIRED, REVOKED
+  createdAt          DateTime       @default(now())
+}
