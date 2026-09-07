@@ -54,9 +54,9 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
     accuracyClass: initialInstrument?.accuracyClass || 'Class III',
     serialNumber: initialInstrument?.serialNumber || 'SN-2026-LM-01',
     manufacturer: initialInstrument?.manufacturer || 'Certified Metrology Equipment',
-    location: initialInstrument?.location || 'Osmangunj Wholesale Market, Hyderabad',
-    district: initialInstrument?.district || 'Hyderabad',
-    state: initialInstrument?.state || 'Telangana',
+    location: initialInstrument?.location || 'George Town Wholesale Market, Chennai',
+    district: initialInstrument?.district || 'Chennai',
+    state: initialInstrument?.state || 'Tamil Nadu',
     expiryDate: initialInstrument?.expiryDate || initialInstrument?.scheduledDate || '2027-02-18',
     status: livePassport?.status || initialInstrument?.status || 'Verified',
     readings: initialInstrument?.readings || {
@@ -78,7 +78,7 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
     ownerId: livePassport.activeCertificate.ownerId,
     issuedDate: livePassport.activeCertificate.issueDate,
     validUntil: livePassport.activeCertificate.validUntil,
-    issuingAuthority: 'Directorate of Legal Metrology, Government of Telangana',
+    issuingAuthority: 'Directorate of Legal Metrology, Government of Tamil Nadu',
     officerName: livePassport.activeCertificate.officerName,
     verificationStandard: 'Legal Metrology Act, 2009 (Rule 14)',
     verificationFee: '₹500',
@@ -113,10 +113,11 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
 
         {/* Passport Header Card */}
         <View style={styles.passportCard}>
+          {/* Executive Gov-Tech Accent Strip */}
           <View style={styles.passportRibbon}>
-            <View style={[styles.ribbonColor, { backgroundColor: '#FF9933' }]} />
-            <View style={[styles.ribbonColor, { backgroundColor: '#FFFFFF' }]} />
-            <View style={[styles.ribbonColor, { backgroundColor: '#138808' }]} />
+            <View style={[styles.ribbonColor, { backgroundColor: '#D4AF37' }]} />
+            <View style={[styles.ribbonColor, { backgroundColor: '#0A192F' }]} />
+            <View style={[styles.ribbonColor, { backgroundColor: '#1E3A8A' }]} />
           </View>
 
           <View style={styles.cardHeader}>

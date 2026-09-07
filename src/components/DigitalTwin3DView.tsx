@@ -45,8 +45,9 @@ export const DigitalTwin3DView: React.FC<DigitalTwin3DViewProps> = ({ instrument
   const [rotX, setRotX] = useState<number>(0.38); // Pitch in radians
   const [rotY, setRotY] = useState<number>(0.75); // Yaw in radians
   const [zoom, setZoom] = useState<number>(1.0);
-  const [viewMode, setViewMode] = useState<'solid' | 'xray' | 'thermal'>('solid');
+  const [viewMode, setViewMode] = useState<'solid' | 'xray' | 'hologram'>('hologram');
   const [isAutoRotating, setIsAutoRotating] = useState<boolean>(true);
+  const [rotationSpeed, setRotationSpeed] = useState<number>(1);
   const [appliedLoadKg, setAppliedLoadKg] = useState<number>(0.0);
   const [activeComponent, setActiveComponent] = useState<string>('platter');
 
@@ -61,14 +62,14 @@ export const DigitalTwin3DView: React.FC<DigitalTwin3DViewProps> = ({ instrument
   const isDragging = useRef<boolean>(false);
   const lastMousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Auto-rotation loop
+  // Auto-rotation loop with dynamic rotation speed
   useEffect(() => {
     if (!isAutoRotating) return;
     const interval = setInterval(() => {
-      setRotY((prev) => (prev + 0.012) % (Math.PI * 2));
+      setRotY((prev) => (prev + 0.012 * rotationSpeed) % (Math.PI * 2));
     }, 30);
     return () => clearInterval(interval);
-  }, [isAutoRotating]);
+  }, [isAutoRotating, rotationSpeed]);
 
   // Project 3D point to 2D canvas coordinates
   const project = useCallback((p: Point3D, cx: number, cy: number, scale: number): { x: number; y: number; z: number } => {
@@ -241,6 +242,8 @@ export const DigitalTwin3DView: React.FC<DigitalTwin3DViewProps> = ({ instrument
         ctx.globalAlpha = 0.45;
       } else if (viewMode === 'xray') {
         ctx.globalAlpha = face.type === 'loadcell' ? 0.95 : 0.25;
+      } else if (viewMode === 'hologram') {
+        ctx.globalAlpha = face.type === 'loadcell' ? 0.85 : 0.4;
       } else {
         ctx.globalAlpha = 1.0;
       }
@@ -259,6 +262,17 @@ export const DigitalTwin3DView: React.FC<DigitalTwin3DViewProps> = ({ instrument
         ctx.strokeStyle = face.wireColor || '#00F0FF';
         ctx.lineWidth = face.type === 'loadcell' ? 2 : 1;
         ctx.stroke();
+      } else if (viewMode === 'hologram') {
+        // Futuristic Hologram: Semi-transparent electric cyan/gold with glowing edges
+        ctx.fillStyle = face.type === 'loadcell' ? 'rgba(245, 158, 11, 0.35)' : 'rgba(0, 240, 255, 0.12)';
+        ctx.fill();
+
+        ctx.strokeStyle = face.type === 'loadcell' ? '#F59E0B' : '#00F0FF';
+        ctx.lineWidth = face.type === 'loadcell' ? 2 : 1.2;
+        ctx.shadowColor = '#00F0FF';
+        ctx.shadowBlur = 8;
+        ctx.stroke();
+        ctx.shadowBlur = 0; // reset
       } else {
         ctx.fillStyle = face.color;
         ctx.fill();
@@ -351,6 +365,14 @@ export const DigitalTwin3DView: React.FC<DigitalTwin3DViewProps> = ({ instrument
         {/* View Mode Toggle */}
         <View style={styles.viewModeToggle}>
           <TouchableOpacity
+            style={[styles.modeBtn, viewMode === 'hologram' && styles.modeBtnActive]}
+            onPress={() => setViewMode('hologram')}
+          >
+            <Text style={[styles.modeBtnText, viewMode === 'hologram' && styles.modeBtnTextActive]}>
+              ✨ Hologram
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[styles.modeBtn, viewMode === 'solid' && styles.modeBtnActive]}
             onPress={() => setViewMode('solid')}
           >
@@ -397,8 +419,26 @@ export const DigitalTwin3DView: React.FC<DigitalTwin3DViewProps> = ({ instrument
             onPress={() => setIsAutoRotating(!isAutoRotating)}
             activeOpacity={0.8}
           >
-            <Text style={styles.overlayIconText}>{isAutoRotating ? '⏸ Pause 360°' : '▶ 360° Auto-Rotate'}</Text>
+            <Text style={styles.overlayIconText}>{isAutoRotating ? '⏸ 360° Revolving' : '▶ 360° Auto-Rotate'}</Text>
           </TouchableOpacity>
+
+          {/* Speed Selector */}
+          <View style={styles.speedControlRow}>
+            {[0.5, 1, 2].map((s) => (
+              <TouchableOpacity
+                key={s}
+                style={[styles.speedChip, rotationSpeed === s && styles.speedChipActive]}
+                onPress={() => {
+                  setRotationSpeed(s);
+                  setIsAutoRotating(true);
+                }}
+              >
+                <Text style={[styles.speedChipText, rotationSpeed === s && styles.speedChipTextActive]}>
+                  {s}x
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <View style={styles.zoomControlRow}>
             <TouchableOpacity
@@ -632,6 +672,32 @@ const styles = StyleSheet.create({
     color: '#E2E8F0',
     fontSize: 11,
     fontWeight: '700',
+  },
+  speedControlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#334155',
+    padding: 2,
+    gap: 2,
+  },
+  speedChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  speedChipActive: {
+    backgroundColor: '#0284C7',
+  },
+  speedChipText: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  speedChipTextActive: {
+    color: '#FFFFFF',
   },
   zoomControlRow: {
     flexDirection: 'row',

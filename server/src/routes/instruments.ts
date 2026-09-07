@@ -77,9 +77,9 @@ router.post('/', async (req: Request, res: Response) => {
         capacity: capacity || '50 kg',
         accuracyClass: accuracyClass || 'Class III',
         ownerId: finalOwnerId,
-        location: location || 'Trade Premises, Osmangunj, Hyderabad',
-        district: district || 'Hyderabad North',
-        state: state || 'Telangana',
+        location: location || 'Trade Premises, George Town, Chennai',
+        district: district || 'Chennai North',
+        state: state || 'Tamil Nadu',
         status: 'PENDING',
       },
       include: {

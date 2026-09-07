@@ -29,8 +29,8 @@ export const SmartAllocationScreen: React.FC<SmartAllocationScreenProps> = ({
     {
       id: 'REQ-HYD-01',
       instrument: 'Essae SuperWeigh-80T (80 Ton Weighbridge)',
-      district: 'Hyderabad North',
-      state: 'Telangana',
+      district: 'Chennai North',
+      state: 'Tamil Nadu',
       requestedDate: '2026-09-06',
       category: 'Electronic Weighbridge'
     },
@@ -91,8 +91,8 @@ export const SmartAllocationScreen: React.FC<SmartAllocationScreenProps> = ({
           id: a.id,
           instrumentId: a.instrumentId,
           instrument: a.instrument ? `${a.instrument.model} (${a.instrument.id})` : a.instrumentId,
-          district: a.instrument?.district || 'Hyderabad North',
-          state: a.instrument?.state || 'Telangana',
+          district: a.instrument?.district || 'Chennai North',
+          state: a.instrument?.state || 'Tamil Nadu',
           requestedDate: a.preferredDate || '2026-09-06',
           category: a.category || 'Non-Automatic Weighing Instrument',
           status: a.status,
@@ -137,8 +137,8 @@ export const SmartAllocationScreen: React.FC<SmartAllocationScreenProps> = ({
     .map(officer =>
       scoreOfficer(
         {
-          district: activeRequest?.district || 'Hyderabad North',
-          state: activeRequest?.state || 'Telangana',
+          district: activeRequest?.district || 'Chennai North',
+          state: activeRequest?.state || 'Tamil Nadu',
           requestedDate: activeRequest?.requestedDate || '2026-09-06',
           category: activeRequest?.category || 'Electronic Weighbridge'
         },
@@ -147,15 +147,8 @@ export const SmartAllocationScreen: React.FC<SmartAllocationScreenProps> = ({
     )
     .sort((a, b) => b.totalScore - a.totalScore);
 
-  // Rotate suggestion across different officers based on request index to vary workload distribution
-  const rotationIdx = availableLmos.length > 0 ? selectedRequestIndex % availableLmos.length : 0;
-  const targetOfficer = availableLmos[rotationIdx];
-  const matchedTarget = scoredOfficers.find(s => s.officer.id === targetOfficer?.id);
-
-  const rankedOfficers: OfficerScoreResult[] = matchedTarget
-    ? [matchedTarget, ...scoredOfficers.filter(s => s.officer.id !== matchedTarget.officer.id)]
-    : scoredOfficers;
-
+  // The updated scoring engine dynamically prioritizes officers with least pending cases and open time slots
+  const rankedOfficers: OfficerScoreResult[] = scoredOfficers;
   const topSuggested = rankedOfficers[0];
 
   const handleApproveAssignment = async (officerId: string, officerName?: string) => {
@@ -236,6 +229,39 @@ export const SmartAllocationScreen: React.FC<SmartAllocationScreenProps> = ({
     } catch (err: any) {
       setSplittingBulk(false);
       Alert.alert('Connection Error', err.message);
+    }
+  };
+
+  // Auto-Allocate All Pending Bulk Batches
+  const [allocatingAllBatches, setAllocatingAllBatches] = useState(false);
+  const handleAutoAllocateAllBatches = async () => {
+    const pendingBatches = bulkRequestsList.filter((b: any) => b.status === 'SUBMITTED');
+    if (pendingBatches.length === 0) {
+      Alert.alert('All Batches Allocated', 'There are no pending unallocated bulk batches in the database.');
+      return;
+    }
+
+    setAllocatingAllBatches(true);
+    let successCount = 0;
+    try {
+      for (const batch of pendingBatches) {
+        const res = await fetch(API_ENDPOINTS.bulkAutoSplitAllocate(batch.id), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const data = await res.json();
+        if (data.success) successCount++;
+      }
+      setAllocatingAllBatches(false);
+      Alert.alert(
+        'Auto-Allocation Complete',
+        `Successfully auto-split and allocated ${successCount} bulk batch(es) evenly across all 4 field LMO officers!`
+      );
+      loadData();
+    } catch (e: any) {
+      setAllocatingAllBatches(false);
+      Alert.alert('Error Allocating Batches', e.message);
     }
   };
 
@@ -532,7 +558,7 @@ export const SmartAllocationScreen: React.FC<SmartAllocationScreenProps> = ({
                         <Text style={styles.gatcStageBadgeText}>STAGE 2: LABORATORY ENDORSEMENT</Text>
                       </View>
                       <Text style={styles.gatcAuthorityName}>
-                        Telangana State Legal Metrology Central Laboratory (GATC-01)
+                        Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)
                       </Text>
                       <Text style={styles.gatcAuthoritySub}>
                         Department of Legal Metrology • State Central Calibration Directorate
@@ -584,10 +610,39 @@ export const SmartAllocationScreen: React.FC<SmartAllocationScreenProps> = ({
               </View>
             </View>
 
-            {/* Bulk Batch Selector */}
-            <Text style={styles.sectionTitle}>
-              Submitted Bulk Batches ({bulkRequestsList.length})
-            </Text>
+            {/* Bulk Batch Selector & Auto-Allocate All Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, marginBottom: 8 }}>
+              <Text style={[styles.sectionTitle, { marginTop: 0, marginBottom: 0 }]}>
+                Submitted Bulk Batches ({bulkRequestsList.length})
+              </Text>
+              {bulkRequestsList.some((b: any) => b.status === 'SUBMITTED') && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#10B981',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                  onPress={handleAutoAllocateAllBatches}
+                  disabled={allocatingAllBatches}
+                  activeOpacity={0.8}
+                >
+                  {allocatingAllBatches ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 12 }}>⚡</Text>
+                      <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 11 }}>
+                        Auto-Allocate All Batches
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
 
             {bulkRequestsList.length === 0 ? (
               <View style={styles.emptyBulkCard}>
@@ -675,8 +730,8 @@ export const SmartAllocationScreen: React.FC<SmartAllocationScreenProps> = ({
 
                       <View style={styles.officerSplitGrid}>
                         {[
-                          { id: 'LMO-101', name: 'V. Ramanathan', zone: 'Hyderabad North', count: Math.ceil(activeBulk.instrumentCount / 4), batch: 'Batch A' },
-                          { id: 'LMO-102', name: 'Sunita Rao', zone: 'Secunderabad', count: Math.ceil(activeBulk.instrumentCount / 4), batch: 'Batch B' },
+                          { id: 'LMO-101', name: 'V. Ramanathan', zone: 'Chennai North', count: Math.ceil(activeBulk.instrumentCount / 4), batch: 'Batch A' },
+                          { id: 'LMO-102', name: 'Sunita Rao', zone: 'Guindy', count: Math.ceil(activeBulk.instrumentCount / 4), batch: 'Batch B' },
                           { id: 'LMO-103', name: 'A. Kumar', zone: 'Charminar Zone', count: Math.floor(activeBulk.instrumentCount / 4), batch: 'Batch C' },
                           { id: 'LMO-104', name: 'K. Priya', zone: 'Cyberabad West', count: Math.floor(activeBulk.instrumentCount / 4), batch: 'Batch D' },
                         ].map((item) => (

@@ -306,11 +306,11 @@ export const MyInstrumentsScreen: React.FC<MyInstrumentsScreenProps> = ({
                     onPress={() => navigation.navigate('Passport', { instrument: inst })}
                     activeOpacity={0.85}
                   >
-                    {/* Tricolor National Top Strip */}
+                    {/* Executive Gov-Tech Accent Strip */}
                     <View style={styles.cardTricolor}>
-                      <View style={[styles.cardTriBand, { backgroundColor: '#FF9933' }]} />
-                      <View style={[styles.cardTriBand, { backgroundColor: '#CBD5E1' }]} />
-                      <View style={[styles.cardTriBand, { backgroundColor: '#138808' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#D4AF37' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#0A192F' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#1E3A8A' }]} />
                     </View>
 
                     {/* Header Row */}
@@ -397,11 +397,11 @@ export const MyInstrumentsScreen: React.FC<MyInstrumentsScreenProps> = ({
 
                 return (
                   <View key={bulk.id} style={styles.bulkFleetCard}>
-                    {/* Tricolor National Top Strip */}
+                    {/* Executive Gov-Tech Accent Strip */}
                     <View style={styles.cardTricolor}>
-                      <View style={[styles.cardTriBand, { backgroundColor: '#FF9933' }]} />
-                      <View style={[styles.cardTriBand, { backgroundColor: '#CBD5E1' }]} />
-                      <View style={[styles.cardTriBand, { backgroundColor: '#138808' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#D4AF37' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#0A192F' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#1E3A8A' }]} />
                     </View>
 
                     {/* Bulk Card Header */}
@@ -507,30 +507,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#E2E8F0',
     borderRadius: 10,
     padding: 3,
-    marginBottom: 12
+    marginBottom: 14
   },
   categoryTab: {
     flex: 1,
-    paddingVertical: 9,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8
   },
   categoryTabActive: {
-    backgroundColor: Colors.primaryNavy,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2
+    backgroundColor: '#0A192F',
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3
   },
   categoryTabText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#475569'
   },
   categoryTabTextActive: {
-    color: '#FFFFFF'
+    color: '#FFFFFF',
+    fontWeight: '800'
   },
   bulkTabBadgeRow: {
     flexDirection: 'row',
@@ -539,106 +540,124 @@ const styles = StyleSheet.create({
   },
   multiUnitPill: {
     backgroundColor: Colors.accentAmber,
-    paddingHorizontal: 5,
-    paddingVertical: 1.5,
-    borderRadius: 4
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6
   },
   multiUnitPillText: {
-    fontSize: 8,
-    fontWeight: '800',
+    fontSize: 8.5,
+    fontWeight: '900',
     color: '#FFFFFF'
   },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1.2,
     borderColor: '#CBD5E1',
-    height: 42
+    height: 44,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2
   },
   searchIcon: {
-    fontSize: 14,
-    marginRight: 8
+    fontSize: 15,
+    marginRight: 10
   },
   input: {
     flex: 1,
-    fontSize: 12.5,
-    color: Colors.textPrimary
+    fontSize: 13,
+    color: '#0F172A',
+    fontWeight: '500'
   },
   clearText: {
-    fontSize: 14,
-    color: Colors.textMuted,
-    paddingHorizontal: 4
+    fontSize: 15,
+    color: '#94A3B8',
+    paddingHorizontal: 6
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginTop: 10,
-    marginBottom: 10
+    gap: 7,
+    marginTop: 12,
+    marginBottom: 12
   },
   filterChip: {
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1'
+    borderWidth: 1.2,
+    borderColor: '#CBD5E1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1
   },
   filterChipActive: {
-    backgroundColor: Colors.primaryNavy,
-    borderColor: Colors.primaryNavy
+    backgroundColor: '#0A192F',
+    borderColor: '#0A192F',
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3
   },
   filterText: {
-    fontSize: 10.5,
-    fontWeight: '600',
-    color: Colors.textSecondary
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569'
   },
   filterTextActive: {
-    color: '#FFFFFF'
+    color: '#FFFFFF',
+    fontWeight: '800'
   },
   countBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8
+    marginBottom: 10
   },
   countText: {
-    fontSize: 11,
-    color: Colors.textSecondary
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '500'
   },
   bold: {
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontWeight: '800',
+    color: '#0A192F'
   },
   refreshBadge: {
     backgroundColor: '#EFF6FF',
     borderWidth: 1,
     borderColor: '#93C5FD',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6
+    paddingHorizontal: 10,
+    paddingVertical: 3.5,
+    borderRadius: 8
   },
   refreshBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 10.5,
+    fontWeight: '800',
     color: '#1D4ED8'
   },
   listContent: {
-    paddingBottom: 28,
-    gap: 12
+    paddingBottom: 32,
+    gap: 14
   },
   tableRowCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    borderColor: '#E2E8F0',
+    padding: 16,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowRadius: 6,
     elevation: 2,
     position: 'relative',
     overflow: 'hidden'

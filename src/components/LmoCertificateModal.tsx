@@ -53,7 +53,7 @@ export const LmoCertificateModal: React.FC<LmoCertificateModalProps> = ({
   isGatcView = false,
 }) => {
   const [liveTunnelUrl, setLiveTunnelUrl] = useState(PUBLIC_VERIFY_URL);
-  const [qrMode, setQrMode] = useState<'text' | 'url'>('text');
+  const [qrMode, setQrMode] = useState<'url' | 'text'>('url');
 
   useEffect(() => {
     fetch(API_ENDPOINTS.publicTunnel)
@@ -66,7 +66,7 @@ export const LmoCertificateModal: React.FC<LmoCertificateModalProps> = ({
       .catch(() => {});
   }, []);
 
-  if (!certificate) return null;
+  if (!visible || !certificate) return null;
 
   const certNumber = certificate.certificateNumber || 'LMO-CERT-TS-2026-0000';
   const sealNumber = certificate.sealNumber || 'TS-SEAL-000000';
@@ -76,7 +76,7 @@ export const LmoCertificateModal: React.FC<LmoCertificateModalProps> = ({
   const lmoVerifyUrl = `${liveTunnelUrl}/api/certificates/verify?id=${encodeURIComponent(certNumber)}`;
 
   // Universal offline LMO record
-  const fullLmoCertificatePayload = `GOVERNMENT OF TELANGANA • LEGAL METROLOGY
+  const fullLmoCertificatePayload = `GOVERNMENT OF TAMIL NADU • LEGAL METROLOGY
 LMO FIELD VERIFICATION CERTIFICATE
 ========================================
 STATUS: CERTIFIED BY LMO (PASSED TO GATC)
@@ -96,7 +96,7 @@ NATIONAL REGISTRY: ${lmoVerifyUrl}`;
   const lmoQrPayload = qrMode === 'url' ? lmoVerifyUrl : fullLmoCertificatePayload;
 
   const handleCopy = () => {
-    const text = 'GOVERNMENT OF TELANGANA - LEGAL METROLOGY\nLMO CERTIFICATE: ' + certNumber + '\nLEAD SEAL: ' + sealNumber + '\nINSTRUMENT: ' + certificate.instrumentId + '\nOFFICER: ' + certificate.officerName + ' (' + certificate.officerBadge + ')\nSTATUS: CERTIFIED BY LMO - PASSED TO GATC';
+    const text = 'GOVERNMENT OF TAMIL NADU - LEGAL METROLOGY\nLMO CERTIFICATE: ' + certNumber + '\nLEAD SEAL: ' + sealNumber + '\nINSTRUMENT: ' + certificate.instrumentId + '\nOFFICER: ' + certificate.officerName + ' (' + certificate.officerBadge + ')\nSTATUS: CERTIFIED BY LMO - PASSED TO GATC';
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && (navigator as any).clipboard) {
       (navigator as any).clipboard.writeText(text);
       Alert.alert('Copied', 'LMO Certificate details copied to clipboard.');
@@ -128,17 +128,17 @@ NATIONAL REGISTRY: ${lmoVerifyUrl}`;
           <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
             {/* Certificate Frame */}
             <View style={styles.certFrame}>
-              {/* National Tri-Color Ribbon */}
+              {/* Executive Gov-Tech Accent Strip */}
               <View style={styles.nationalRibbon}>
-                <View style={[styles.ribbonBand, { backgroundColor: '#FF9933' }]} />
-                <View style={[styles.ribbonBand, { backgroundColor: '#FFFFFF' }]} />
-                <View style={[styles.ribbonBand, { backgroundColor: '#138808' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#D4AF37' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#0A192F' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#1E3A8A' }]} />
               </View>
 
               {/* Header Box */}
               <View style={styles.certHeader}>
                 <Text style={styles.emblemIcon}>🏛️</Text>
-                <Text style={styles.govTitle}>GOVERNMENT OF TELANGANA</Text>
+                <Text style={styles.govTitle}>GOVERNMENT OF TAMIL NADU</Text>
                 <Text style={styles.deptTitle}>DIRECTORATE OF LEGAL METROLOGY</Text>
                 <Text style={styles.certHeading}>FIELD VERIFICATION & CALIBRATION SLIP</Text>
                 <Text style={styles.ruleText}>[Official Schedule VII Physical Stamping & Standard Test Slip]</Text>
@@ -276,7 +276,7 @@ NATIONAL REGISTRY: ${lmoVerifyUrl}`;
                   <Text style={styles.signName}>{certificate.officerName}</Text>
                   <Text style={styles.signBadge}>Badge: {certificate.officerBadge}</Text>
                   <Text style={styles.signDept}>{certificate.officerDesignation || 'Legal Metrology Officer'}</Text>
-                  <Text style={styles.signStamp}>Telangana State Legal Metrology</Text>
+                  <Text style={styles.signStamp}>Tamil Nadu State Legal Metrology</Text>
                 </View>
 
                 <View style={styles.arrowBox}>
@@ -288,7 +288,7 @@ NATIONAL REGISTRY: ${lmoVerifyUrl}`;
                   <Text style={styles.signNameGatc}>GATC Central Testing Laboratory</Text>
                   <Text style={styles.signBadgeGatc}>Station: GATC-TS-01</Text>
                   <Text style={styles.signDeptGatc}>Awaiting Final Form VI Endorsement</Text>
-                  <Text style={styles.signStampGatc}>Government of Telangana</Text>
+                  <Text style={styles.signStampGatc}>Government of Tamil Nadu</Text>
                 </View>
               </View>
             </View>
@@ -319,23 +319,35 @@ NATIONAL REGISTRY: ${lmoVerifyUrl}`;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(11, 37, 69, 0.75)',
+    backgroundColor: 'rgba(10, 25, 47, 0.82)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
+    ...(Platform.OS === 'web' ? {
+      position: 'fixed' as any,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 99999,
+      width: '100%',
+      height: '100%',
+    } : {}),
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     width: '100%',
     maxWidth: 620,
     maxHeight: '90%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 15,
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
     elevation: 10,
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
   },
   modalHeader: {
     flexDirection: 'row',

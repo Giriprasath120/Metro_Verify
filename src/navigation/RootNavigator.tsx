@@ -23,6 +23,9 @@ import { OfflineQueueScreen } from '../screens/officer/OfflineQueueScreen';
 
 // Admin Screens
 import { AdminDashboardScreen } from '../screens/admin/AdminDashboardScreen';
+import { AdminRequestsScreen } from '../screens/admin/AdminRequestsScreen';
+import { AdminStatusScreen } from '../screens/admin/AdminStatusScreen';
+import { AdminOfficersScreen } from '../screens/admin/AdminOfficersScreen';
 import { SmartAllocationScreen } from '../screens/admin/SmartAllocationScreen';
 import { ComplianceAlertsScreen } from '../screens/admin/ComplianceAlertsScreen';
 import { BulkBatchMonitorScreen } from '../screens/admin/BulkBatchMonitorScreen';
@@ -46,6 +49,9 @@ const linking = {
       Schedule: 'officer/schedule',
       OfflineQueue: 'officer/offline-queue',
       AdminDashboard: 'admin/overview',
+      AdminRequests: 'admin/requests',
+      AdminStatus: 'admin/status',
+      AdminOfficers: 'admin/officers',
       SmartAllocation: 'admin/smart-allocation',
       ComplianceAlerts: 'admin/alerts',
     },
@@ -105,9 +111,11 @@ const WebPortalNavBar: React.FC<{
   ];
 
   const adminTabs = [
-    { key: 'AdminDashboard', label: 'State Metrology Overview', icon: '📊' },
-    { key: 'SmartAllocation', label: 'Smart Allocation Engine', icon: '🧠' },
-    { key: 'ComplianceAlerts', label: 'Statutory Risk Alerts', icon: '⚠️' },
+    { key: 'AdminDashboard', label: 'Overview', icon: '📊' },
+    { key: 'AdminRequests', label: 'Requests', icon: '📥' },
+    { key: 'AdminStatus', label: 'Status', icon: '📑' },
+    { key: 'AdminOfficers', label: 'Officers & Labs', icon: '👥' },
+    { key: 'ComplianceAlerts', label: 'Risk Alerts', icon: '⚠️' },
   ];
 
   const tabs = currentRole === 'owner' ? ownerTabs : currentRole === 'officer' ? officerTabs : adminTabs;
@@ -119,7 +127,7 @@ const WebPortalNavBar: React.FC<{
           <Text style={styles.webNavEmblem}>🏛️</Text>
           <View>
             <Text style={styles.webNavTitle}>METRO VERIFY PORTAL</Text>
-            <Text style={styles.webNavSub}>Government of Telangana • Legal Metrology Directorate</Text>
+            <Text style={styles.webNavSub}>Government of Tamil Nadu • Legal Metrology Directorate</Text>
           </View>
         </View>
 
@@ -314,7 +322,7 @@ function AdminTabNavigator({ onSwitchRole }: { onSwitchRole: () => void }) {
       <Tab.Screen
         name="AdminDashboard"
         options={{
-          tabBarLabel: 'State Overview',
+          tabBarLabel: 'Overview',
           tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📊</Text>
         }}
       >
@@ -322,13 +330,33 @@ function AdminTabNavigator({ onSwitchRole }: { onSwitchRole: () => void }) {
       </Tab.Screen>
 
       <Tab.Screen
-        name="SmartAllocation"
+        name="AdminRequests"
         options={{
-          tabBarLabel: 'Smart Allocation',
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>🧠</Text>
+          tabBarLabel: 'Requests',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📥</Text>
         }}
       >
-        {props => <SmartAllocationScreen {...props} onSwitchRole={onSwitchRole} />}
+        {props => <AdminRequestsScreen {...props} onSwitchRole={onSwitchRole} />}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="AdminStatus"
+        options={{
+          tabBarLabel: 'Status',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>📑</Text>
+        }}
+      >
+        {props => <AdminStatusScreen {...props} onSwitchRole={onSwitchRole} />}
+      </Tab.Screen>
+
+      <Tab.Screen
+        name="AdminOfficers"
+        options={{
+          tabBarLabel: 'Officers',
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 18, color }}>👥</Text>
+        }}
+      >
+        {props => <AdminOfficersScreen {...props} onSwitchRole={onSwitchRole} />}
       </Tab.Screen>
 
       <Tab.Screen
@@ -399,29 +427,40 @@ export const RootNavigator: React.FC = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    height: 60,
+    borderTopColor: '#E2E8F0',
+    height: 64,
     paddingBottom: 8,
-    paddingTop: 6
+    paddingTop: 8,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 8
   },
   tabBarLabel: {
-    fontSize: 10,
-    fontWeight: '700'
+    fontSize: 10.5,
+    fontWeight: '700',
+    marginTop: 2
   },
   webNavBar: {
-    backgroundColor: '#07162C',
-    borderBottomWidth: 2,
-    borderBottomColor: Colors.accentAmber,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    backgroundColor: '#050E1A',
+    borderBottomWidth: 1.5,
+    borderBottomColor: 'rgba(212, 175, 55, 0.4)',
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6
   },
   webNavContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    maxWidth: 1400,
+    maxWidth: 1440,
     marginHorizontal: 'auto',
     width: '100%',
   },
@@ -435,19 +474,25 @@ const styles = StyleSheet.create({
   },
   webNavTitle: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 16.5,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
   webNavSub: {
     color: '#94A3B8',
     fontSize: 10,
     fontWeight: '600',
+    letterSpacing: 0.3,
   },
   webNavTabs: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    padding: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   webTabBtn: {
     flexDirection: 'row',
@@ -455,11 +500,15 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 7,
   },
   webTabBtnActive: {
     backgroundColor: Colors.accentAmber,
+    shadowColor: Colors.accentAmber,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 3,
   },
   webTabIcon: {
     fontSize: 14,
@@ -470,20 +519,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   webTabTextActive: {
-    color: '#07162C',
+    color: '#FFFFFF',
     fontWeight: '800',
   },
   webLogoutBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
-    borderColor: '#EF4444',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
     borderRadius: 8,
   },
   webLogoutText: {
     color: '#F87171',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });
+

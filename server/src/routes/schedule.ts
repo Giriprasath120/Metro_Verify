@@ -10,16 +10,18 @@ import {
 const router = Router();
 
 // Helper to map DB Officer to AllocationEngine Officer format
-function mapDbOfficer(officer: any) {
+function mapDbOfficer(officer: any, liveWorkload?: number, slotBookings?: number) {
   const districtCoordinates: Record<string, { lat: number; lng: number }> = {
-    'Hyderabad North': { lat: 17.4485, lng: 78.487 },
-    'Hyderabad South': { lat: 17.3616, lng: 78.4747 },
-    'Secunderabad': { lat: 17.4399, lng: 78.4983 },
-    'Hyderabad': { lat: 17.385, lng: 78.4867 },
+    'Chennai North': { lat: 17.4485, lng: 78.487 },
+    'Chennai South': { lat: 17.3616, lng: 78.4747 },
+    'Guindy': { lat: 17.4399, lng: 78.4983 },
+    'Charminar Zone': { lat: 17.3616, lng: 78.4747 },
+    'Cyberabad West': { lat: 17.4399, lng: 78.38 },
+    'Chennai': { lat: 17.385, lng: 78.4867 },
     'New Delhi Central': { lat: 28.6433, lng: 77.1895 },
   };
 
-  const coords = districtCoordinates[officer.district] || { lat: 17.4485, lng: 78.487 };
+  const coords = districtCoordinates[officer.district] || districtCoordinates[officer.jurisdiction] || { lat: 17.4485, lng: 78.487 };
   const today = new Date().toISOString().split('T')[0];
 
   return {
@@ -28,12 +30,14 @@ function mapDbOfficer(officer: any) {
     role: officer.role as 'LMO' | 'GATC',
     badgeNumber: officer.badgeNumber,
     designation: officer.designation,
-    district: officer.district,
+    district: officer.jurisdiction || officer.district,
     state: officer.state,
     lat: coords.lat,
     lng: coords.lng,
-    pendingJobs: officer.currentWorkload,
-    availableDates: [today, '2026-09-06', '2026-09-07', '2026-09-08', '2026-09-09', '2026-09-10'],
+    pendingJobs: typeof liveWorkload === 'number' ? liveWorkload : officer.currentWorkload,
+    slotBookings: typeof slotBookings === 'number' ? slotBookings : 0,
+    maxCapacity: officer.maxCapacity || 20,
+    availableDates: [today, '2026-09-06', '2026-09-07', '2026-09-08', '2026-09-09', '2026-09-10', '2026-09-13', '2026-09-14', '2026-09-15'],
     contactNumber: officer.phone,
     gatcLabName: officer.role === 'GATC' ? officer.name : undefined,
   };
@@ -47,12 +51,22 @@ router.get('/officers', async (req: Request, res: Response) => {
       orderBy: { currentWorkload: 'asc' },
     });
 
-    const officers = dbOfficers.map(mapDbOfficer);
+    const officersWithLiveWorkload = await Promise.all(
+      dbOfficers.map(async (o) => {
+        const livePending = await prisma.assignment.count({
+          where: {
+            assignedOfficerId: o.id,
+            status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+          },
+        });
+        return mapDbOfficer(o, livePending);
+      })
+    );
 
     return res.json({
       success: true,
-      count: officers.length,
-      officers,
+      count: officersWithLiveWorkload.length,
+      officers: officersWithLiveWorkload,
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
@@ -69,6 +83,7 @@ router.post('/allocate', async (req: Request, res: Response) => {
       state,
       district,
       requestedDate,
+      timeSlot,
       lat,
       lng,
       isBulk,
@@ -79,15 +94,37 @@ router.post('/allocate', async (req: Request, res: Response) => {
       where: { active: true },
     });
 
-    const officers = dbOfficers.map(mapDbOfficer);
+    const targetDate = requestedDate || new Date().toISOString().split('T')[0];
+    const targetSlot = timeSlot || '10:00 AM - 01:00 PM';
+
+    // Enrich officers with live pending cases & live slot bookings on that date/slot
+    const officers = await Promise.all(
+      dbOfficers.map(async (o) => {
+        const livePending = await prisma.assignment.count({
+          where: {
+            assignedOfficerId: o.id,
+            status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+          },
+        });
+        const slotBookings = await prisma.assignment.count({
+          where: {
+            assignedOfficerId: o.id,
+            scheduledDate: targetDate,
+            status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+          },
+        });
+        return mapDbOfficer(o, livePending, slotBookings);
+      })
+    );
 
     const allocationRequest: AllocationRequest = {
       instrumentId,
       instrumentName: instrumentName || 'Weighing/Measuring Instrument',
       category: category || 'Commercial Measuring Equipment',
-      state: state || 'Telangana',
-      district: district || 'Hyderabad North',
-      requestedDate: requestedDate || new Date().toISOString().split('T')[0],
+      state: state || 'Tamil Nadu',
+      district: district || 'Chennai North',
+      requestedDate: targetDate,
+      timeSlot: targetSlot,
       lat: typeof lat === 'number' ? lat : undefined,
       lng: typeof lng === 'number' ? lng : undefined,
       isBulk: Boolean(isBulk),
@@ -126,15 +163,76 @@ router.post(['/assign', '/confirm'], async (req: Request, res: Response) => {
       });
     }
 
-    // Call stored procedure sp_CreateAssignment
-    await prisma.$queryRawUnsafe(
-      'CALL sp_CreateAssignment(?, ?, ?)',
-      applicationId,
-      officerId,
-      batchId || null
-    );
+    const { scheduledDate, timeSlot } = req.body;
 
-    // Fetch the newly created assignment
+    // Fetch application details to get instrumentId and ownerId
+    const app = await prisma.application.findUnique({
+      where: { id: applicationId },
+      include: { instrument: true, owner: true }
+    });
+
+    if (!app) {
+      return res.status(404).json({ success: false, error: `Application ${applicationId} not found` });
+    }
+
+    const targetDate = scheduledDate || app.preferredDate || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0];
+    const targetSlot = timeSlot || app.preferredTimeSlot || '10:00 AM - 01:00 PM';
+
+    // 1. Execute assignment stored procedure if present, with graceful fallback to Prisma
+    try {
+      await prisma.$queryRawUnsafe(
+        'CALL sp_CreateAssignment(?, ?, ?)',
+        applicationId,
+        officerId,
+        batchId || null
+      );
+    } catch {
+      // Fallback: create assignment directly
+      const asgCount = await prisma.assignment.count();
+      const asgId = `ASG-${String(asgCount + 1).padStart(4, '0')}`;
+      await prisma.assignment.create({
+        data: {
+          id: asgId,
+          applicationId,
+          instrumentId: app.instrumentId,
+          ownerId: app.ownerId,
+          assignedOfficerId: officerId,
+          batchId: batchId || null,
+          status: 'SCHEDULED',
+          scheduledDate: targetDate,
+        }
+      });
+    }
+
+    // 2. Update Application status to SCHEDULED
+    await prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        status: 'SCHEDULED',
+        preferredDate: targetDate,
+        preferredTimeSlot: targetSlot,
+      }
+    });
+
+    // 3. Update Instrument status and scheduling details
+    if (app.instrumentId) {
+      await prisma.instrument.update({
+        where: { id: app.instrumentId },
+        data: {
+          status: 'SCHEDULED',
+          scheduledDate: targetDate,
+          timeSlot: targetSlot,
+        }
+      });
+    }
+
+    // 4. Increment officer live workload
+    await prisma.officer.update({
+      where: { id: officerId },
+      data: { currentWorkload: { increment: 1 } }
+    }).catch(() => {});
+
+    // 5. Fetch the newly created assignment with relations
     const assignment = await prisma.assignment.findFirst({
       where: {
         applicationId,
@@ -150,7 +248,7 @@ router.post(['/assign', '/confirm'], async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: `Assignment successfully created and assigned to ${assignment?.assignedOfficer?.name}`,
+      message: `Assignment successfully created and assigned to ${assignment?.assignedOfficer?.name || 'Officer'}`,
       assignment,
     });
   } catch (error: any) {

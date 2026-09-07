@@ -1,34 +1,51 @@
-// colors.ts - Government Tech Theme for Metro Verify (SIH26036)
+// colors.ts - Government Tech Theme for Metro Verify (SIH26036) - Elegant Luxury Gov-Tech 2.0
 
 export const Colors = {
-  // Primary Palette (Indian Gov Tech: Deep Navy & Warm Amber)
-  primaryNavy: '#0B2545',
-  headerNavy: '#133B5C',
-  navyDark: '#07162C',
-  navyLight: '#1D4E89',
+  // Primary Palette (Indian Gov Tech: Deep Executive Navy & Metallic Amber/Gold)
+  primaryNavy: '#0A192F',
+  headerNavy: '#0F2744',
+  navyDark: '#050E1A',
+  navyLight: '#1B3B6F',
+  navyAccent: '#204E8A',
   
-  accentAmber: '#E65100', // Warm orange/amber primary action
-  accentOrange: '#F58220',
-  accentGold: '#D97706',
+  // Executive Accent Tones (Gold, Warm Amber & Royal Sapphire)
+  accentAmber: '#EA580C',      // Vibrant Indian saffron/amber
+  accentOrange: '#F97316',
+  accentGold: '#D4AF37',       // Metallic luxury gold
+  accentGoldLight: '#FDE68A',
+  accentGoldMuted: '#92400E',
+  accentRoyalBlue: '#2563EB',
+  accentEmerald: '#059669',
+  accentRuby: '#DC2626',
   
-  // Backgrounds & Surfaces
-  background: '#F4F7FB',
+  // Backgrounds & Glass Surfaces
+  background: '#F1F5F9',       // Clean, modern cool slate canvas
+  backgroundDark: '#07162C',
   surface: '#FFFFFF',
   surfaceSubtle: '#F8FAFC',
-  border: '#E2E8F0',
-  borderDark: '#CBD5E1',
+  surfaceGlass: 'rgba(255, 255, 255, 0.92)',
+  surfaceGlassDark: 'rgba(10, 25, 47, 0.95)',
+  surfaceCardGlass: 'rgba(255, 255, 255, 0.85)',
   
-  // Typography
+  // High-End Borders
+  border: '#E2E8F0',
+  borderLight: '#F1F5F9',
+  borderDark: '#CBD5E1',
+  borderGold: 'rgba(212, 175, 55, 0.35)',
+  borderGlass: 'rgba(255, 255, 255, 0.18)',
+  
+  // Typography Hierarchy
   textPrimary: '#0F172A',
   textSecondary: '#475569',
   textMuted: '#94A3B8',
   textWhite: '#FFFFFF',
+  textGold: '#D4AF37',
 
-  // Status Badges (Strictly aligned with requirements)
+  // Status Badges (Strictly aligned with requirements + glowing indicators)
   status: {
     pending: {
       bg: '#F1F5F9',
-      text: '#475569',
+      text: '#334155',
       border: '#CBD5E1',
       dot: '#94A3B8'
     },
@@ -40,7 +57,7 @@ export const Colors = {
     },
     inProgress: {
       bg: '#FFFBEB',
-      text: '#B45309',
+      text: '#92400E',
       border: '#FDE68A',
       dot: '#F59E0B'
     },
@@ -58,9 +75,10 @@ export const Colors = {
     },
     expired: {
       bg: '#FEF2F2',
-      text: '#B91C1C',
+      text: '#991B1B',
       border: '#FECACA',
       dot: '#EF4444'
     }
   }
 };
+

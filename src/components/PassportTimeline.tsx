@@ -48,7 +48,7 @@ export const PassportTimeline: React.FC<PassportTimelineProps> = ({ nodes }) => 
     {
       stage: 'Inspection Scheduled',
       date: '2026-02-10',
-      officerName: 'Senior LMO Hyderabad',
+      officerName: 'Senior LMO Chennai',
       note: 'Physical premises calibration slot confirmed',
       completed: true,
     },

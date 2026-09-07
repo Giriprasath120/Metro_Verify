@@ -4,6 +4,7 @@ import prisma from '../lib/prisma';
 import { mockOwners, mockInstruments, mockCertificates } from '../data/mockData';
 
 const router = Router();
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 // POST /chatbot/query - Real Gemini & Groq API Integration with Live Prisma Database Records
 router.post('/query', async (req: Request, res: Response) => {
@@ -131,7 +132,7 @@ Rules:
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'qwen/qwen3.8-27b',
+          model: 'llama-3.3-70b-versatile',
           messages: [
             { role: 'system', content: systemInstruction },
             { role: 'user', content: message }
@@ -149,7 +150,7 @@ Rules:
             success: true,
             source: 'groq-api',
             reply: text.trim(),
-            poweredBy: 'Groq Cloud AI (Qwen 27B)'
+            poweredBy: 'Groq Cloud AI (Llama 3.3 70B)'
           });
         }
       } else {
@@ -262,5 +263,90 @@ function generateDomainFallback(
 
   return `Greetings ${owner.name}! I am Metro Assistant for Metro Verify. For "${owner.businessName}", you have ${instruments.length} registered equipment item(s), ${applications.length} verification application(s), and a compliance score of ${owner.complianceScore}/100. How may I assist you today?`;
 }
+
+// POST /chatbot/voice-transcribe - Cloud Whisper Large v3 Turbo Speech-to-Text
+router.post('/voice-transcribe', async (req: Request, res: Response) => {
+  try {
+    const groqApiKey = process.env.GROQ_API_KEY?.trim();
+    if (!groqApiKey) {
+      return res.status(400).json({ success: false, error: 'Groq API key not configured on server' });
+    }
+
+    let buffer: Buffer | null = null;
+    let mimeType = 'audio/webm';
+    let fileName = 'audio.webm';
+
+    if (req.body && req.body.audioBase64) {
+      buffer = Buffer.from(req.body.audioBase64, 'base64');
+      if (req.body.mimeType) {
+        mimeType = req.body.mimeType;
+        if (mimeType.includes('wav')) fileName = 'audio.wav';
+        else if (mimeType.includes('mp4') || mimeType.includes('m4a')) fileName = 'audio.m4a';
+        else if (mimeType.includes('ogg')) fileName = 'audio.ogg';
+      }
+    } else if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+      buffer = req.body;
+      const ctype = req.headers['content-type'] || 'audio/webm';
+      mimeType = ctype;
+      if (mimeType.includes('wav')) fileName = 'audio.wav';
+    }
+
+    if (!buffer || buffer.length === 0) {
+      return res.status(400).json({ success: false, error: 'No audio data received' });
+    }
+
+    const formData = new FormData();
+    const blob = new Blob([new Uint8Array(buffer)], { type: mimeType });
+    formData.append('file', blob, fileName);
+    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('language', 'en');
+    // Priming prompt drastically increases Whisper hearing sensitivity and eliminates dropped speech
+    formData.append('prompt', 'Metro Verify, Legal Metrology, weighing scale, weighbridge, certificate, LMO officer, inspection, verification status, stamp, Rule 14, fee, reverification, Tamil Nadu, capacity.');
+    formData.append('temperature', '0.0');
+
+    const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${groqApiKey}`
+      },
+      body: formData
+    });
+
+    if (!whisperRes.ok) {
+      const errText = await whisperRes.text();
+      console.warn('Groq Whisper API returned non-200:', errText);
+      return res.status(500).json({ success: false, error: errText });
+    }
+
+    const data = await whisperRes.json() as any;
+    let transcribedText = (data.text || '').trim();
+
+    // Filter common Whisper silence/noise hallucinations
+    const hallucinationPatterns = [
+      /^thank you[\.!\s]*$/i,
+      /^thank you so much[\.!\s]*$/i,
+      /^thank you for watching[\.!\s]*$/i,
+      /^thanks for watching[\.!\s]*$/i,
+      /^subtitles by.*$/i,
+      /^you$/i,
+      /^\.$/,
+      /^\.\.\.$/
+    ];
+
+    const isHallucination = hallucinationPatterns.some(pat => pat.test(transcribedText));
+    if (isHallucination) {
+      transcribedText = '';
+    }
+
+    return res.json({
+      success: true,
+      text: transcribedText,
+      poweredBy: 'Groq Whisper Large v3 Turbo'
+    });
+  } catch (err: any) {
+    console.error('Voice transcription error:', err);
+    return res.status(500).json({ success: false, error: err.message || err });
+  }
+});
 
 export default router;

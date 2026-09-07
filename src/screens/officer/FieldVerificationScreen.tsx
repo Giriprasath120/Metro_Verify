@@ -275,7 +275,7 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
             errorMargin,
             toleranceLimit,
             status: 'CERTIFIED_BY_LMO_PASSED_TO_GATC',
-            gatcTargetLab: data.gatcTarget || 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+            gatcTargetLab: data.gatcTarget || 'Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)',
             latitude: gpsCoords?.lat,
             longitude: gpsCoords?.lng,
             remarks,
@@ -302,7 +302,7 @@ export const FieldVerificationScreen: React.FC<FieldVerificationScreenProps> = (
         const normalizedCert = rawCert ? {
           ...rawCert,
           issuedDate: rawCert.issueDate || rawCert.issuedDate || new Date().toISOString().split('T')[0],
-          issuingAuthority: 'Directorate of Legal Metrology, Government of Telangana',
+          issuingAuthority: 'Directorate of Legal Metrology, Government of Tamil Nadu',
           verificationStandard: 'Legal Metrology Act, 2009 (Rule 14)',
           verificationFee: '₹500',
           securityHash: rawCert.id || rawCert.certificateNumber || 'SEC-VERIFY-HASH-2026',

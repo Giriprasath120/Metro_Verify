@@ -48,58 +48,85 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
   const [listeningStatus, setListeningStatus] = useState<string>('');
+  const [audioLevel, setAudioLevel] = useState<number>(0);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<any>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<any>(null);
+  const analyserRef = useRef<any>(null);
+  const animationFrameRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
   const silenceTimerRef = useRef<any>(null);
   const keepAliveRef = useRef<any>(null);
   const currentUtteranceRef = useRef<any>(null);
 
-  // Clean up timers, recognition, and speech on unmount
+  // Clean up timers, recognition, media streams, and speech on unmount
   useEffect(() => {
     return () => {
       stopSpeaking();
+      stopAudioCapture();
       if (silenceTimerRef.current) {
         clearTimeout(silenceTimerRef.current);
       }
       if (keepAliveRef.current) {
         clearInterval(keepAliveRef.current);
       }
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (e) {}
-      }
     };
   }, []);
+
+  const stopAudioCapture = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => {
+        try { track.stop(); } catch (e) {}
+      });
+      mediaStreamRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      try { audioContextRef.current.close(); } catch (e) {}
+    }
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch (e) {}
+      recognitionRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      try { mediaRecorderRef.current.stop(); } catch (e) {}
+      mediaRecorderRef.current = null;
+    }
+    setIsListening(false);
+    setAudioLevel(0);
+  };
 
   const speakText = (text: string, msgId?: string) => {
     if (!voiceEnabled) return;
     try {
       stopSpeaking();
-      // Clean markdown symbols for natural voice
       const clean = text
         .replace(/[*_#`~>]/g, '')
         .replace(/https?:\/\/\S+/g, 'link')
         .replace(/₹/g, 'Rupees ')
         .replace(/\n+/g, '. ')
-        .slice(0, 500); // smooth, crisp audio summary
+        .slice(0, 500);
 
       if (Platform.OS === 'web' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(clean);
         currentUtteranceRef.current = utterance;
-        (window as any)._speechUtterance = utterance; // Prevent Chrome V8 garbage collection!
+        (window as any)._speechUtterance = utterance;
 
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
 
-        // Pick Indian English voice or standard English voice
         const voices = window.speechSynthesis.getVoices();
         const inVoice = voices.find(v => v.lang === 'en-IN' || v.lang.startsWith('en-IN'));
         const enVoice = voices.find(v => v.lang.startsWith('en'));
@@ -127,7 +154,6 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
           (window as any)._speechUtterance = null;
         };
 
-        // Chrome keep-alive
         if (keepAliveRef.current) clearInterval(keepAliveRef.current);
         keepAliveRef.current = setInterval(() => {
           if (window.speechSynthesis.speaking) {
@@ -138,7 +164,6 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
           }
         }, 5000);
 
-        // Resume and speak with 50ms tick to reset Chrome audio engine
         setTimeout(() => {
           try {
             window.speechSynthesis.resume();
@@ -190,136 +215,263 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
   };
 
   /**
-   * Stop listening and immediately send the accumulated voice transcript
+   * Stop recording and process the voice query (using speech recognition or Whisper AI fallback)
    */
-  const stopListeningAndSend = () => {
+  const stopListeningAndSend = async () => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
 
-    const textToSend = transcriptRef.current.trim() || inputText.trim();
+    const wordsFromRecognition = transcriptRef.current.trim();
+    const typedText = inputText.trim();
 
+    // Stop recognition & capture recorder chunks
+    const recorder = mediaRecorderRef.current;
     if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {}
+      try { recognitionRef.current.stop(); } catch (e) {}
     }
-    setIsListening(false);
 
-    if (textToSend) {
-      setListeningStatus(`✓ Heard: "${textToSend}" — Analyzing query...`);
+    // Stop visual analyzer
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
+    }
+
+    setIsListening(false);
+    setAudioLevel(0);
+
+    // CASE 1: Browser SpeechRecognition successfully captured words
+    if (wordsFromRecognition || typedText) {
+      const finalQuery = wordsFromRecognition || typedText;
       transcriptRef.current = '';
-      handleSend(textToSend, true);
-      setTimeout(() => {
-        setListeningStatus('');
-      }, 3500);
+      setListeningStatus(`✓ Heard: "${finalQuery}" — Analyzing query...`);
+      handleSend(finalQuery, true);
+      setTimeout(() => setListeningStatus(''), 3000);
+      return;
+    }
+
+    // CASE 2: Browser recognition didn't yield text -> Fallback to Groq Whisper AI via recorded audio chunks
+    if (recorder && recorder.state !== 'inactive') {
+      setIsTranscribing(true);
+      setListeningStatus('🎙️ Processing speech with Groq Whisper AI...');
+
+      recorder.onstop = async () => {
+        try {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          if (audioBlob.size < 500) {
+            setIsTranscribing(false);
+            setListeningStatus('⚠️ No speech detected. Please speak closer to microphone.');
+            setTimeout(() => setListeningStatus(''), 3000);
+            return;
+          }
+
+          // Convert blob to base64
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            try {
+              const base64data = (reader.result as string).split(',')[1];
+              const res = await fetch(API_ENDPOINTS.chatbotVoiceTranscribe, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  audioBase64: base64data,
+                  mimeType: 'audio/webm'
+                })
+              });
+              const data = await res.json();
+              setIsTranscribing(false);
+
+              if (data && data.success && data.text && data.text.trim()) {
+                const transcribed = data.text.trim();
+                const isHallucination = /^(thank you|thanks|thank you for watching|subtitles by|\.|\.\.\.)$/i.test(transcribed);
+                if (!isHallucination) {
+                  setListeningStatus(`✓ Heard: "${transcribed}" — Analyzing query...`);
+                  handleSend(transcribed, true);
+                  setTimeout(() => setListeningStatus(''), 3000);
+                } else {
+                  setListeningStatus('⚠️ Speech too faint or unclear. Tap mic and speak closer to microphone.');
+                  setTimeout(() => setListeningStatus(''), 3000);
+                }
+              } else {
+                setListeningStatus('⚠️ No words detected. Tap the mic and speak your query.');
+                setTimeout(() => setListeningStatus(''), 3000);
+              }
+            } catch (err) {
+              console.warn('Whisper transcription failed:', err);
+              setIsTranscribing(false);
+              setListeningStatus('⚠️ Voice processing completed.');
+              setTimeout(() => setListeningStatus(''), 2000);
+            }
+          };
+        } catch (e) {
+          setIsTranscribing(false);
+          setListeningStatus('⚠️ Microphone processing error.');
+          setTimeout(() => setListeningStatus(''), 2000);
+        }
+      };
+
+      try {
+        if (recorder.state === 'recording') {
+          recorder.requestData();
+        }
+        recorder.stop();
+      } catch (e) {}
     } else {
-      setListeningStatus('⚠️ No speech detected. Tap the mic and speak your query.');
-      setTimeout(() => {
-        setListeningStatus('');
-      }, 3000);
+      setListeningStatus('⚠️ No speech detected. Tap mic to speak.');
+      setTimeout(() => setListeningStatus(''), 3000);
     }
   };
 
-  const toggleListening = () => {
-    if (isListening) {
+  /**
+   * Main Microphone Toggle: Requests real audio stream, starts visual level detector,
+   * MediaRecorder, and SpeechRecognition simultaneously
+   */
+  const toggleListening = async () => {
+    if (isListening || isTranscribing) {
       stopListeningAndSend();
       return;
     }
 
-    // Clear any active speaking
     stopSpeaking();
 
-    // Prime/unlock audio context in user gesture
-    if (Platform.OS === 'web' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.resume();
-      } catch (e) {}
+    // Unlock/resume audio context
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      try { window.speechSynthesis.resume(); } catch (e) {}
     }
 
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
-
-      if (!SpeechRecognition) {
-        alert('Voice speech recognition is supported on Google Chrome, Microsoft Edge, and Safari browsers. Please open Metro Verify in Chrome or Edge.');
-        return;
-      }
-
       try {
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.maxAlternatives = 1;
-        recognition.lang = 'en-IN';
+        // 1. Request real hardware microphone access with optimal gain & noise cancellation
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert('Microphone access is not supported by your current browser.');
+          return;
+        }
 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: 48000,
+            channelCount: 1
+          }
+        });
+        mediaStreamRef.current = stream;
+
+        // 2. Real-time Audio Level Visualizer
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          const audioCtx = new AudioCtx();
+          audioContextRef.current = audioCtx;
+          const analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 64;
+          analyserRef.current = analyser;
+          const source = audioCtx.createMediaStreamSource(stream);
+          source.connect(analyser);
+
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          const updateLevel = () => {
+            if (!analyserRef.current) return;
+            analyserRef.current.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            const avg = sum / dataArray.length;
+            setAudioLevel(Math.min(100, Math.round((avg / 128) * 100)));
+            animationFrameRef.current = requestAnimationFrame(updateLevel);
+          };
+          updateLevel();
+        }
+
+        // 3. MediaRecorder for high-fidelity audio chunks
+        audioChunksRef.current = [];
+        let mimeType = 'audio/webm';
+        if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
+          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+            mimeType = 'audio/webm;codecs=opus';
+          } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
+          }
+        }
+
+        if (typeof MediaRecorder !== 'undefined') {
+          const mediaRecorder = new MediaRecorder(stream, { mimeType });
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) {
+              audioChunksRef.current.push(e.data);
+            }
+          };
+          mediaRecorder.start(250);
+          mediaRecorderRef.current = mediaRecorder;
+        }
+
+        // 4. Concurrently start Web Speech Recognition for live interim text display
+        const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         transcriptRef.current = '';
 
-        recognition.onstart = () => {
-          setIsListening(true);
-          setListeningStatus('🎙️ Listening carefully... Speak your question now');
-        };
+        if (SpeechRec) {
+          try {
+            const recognition = new SpeechRec();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+            recognition.lang = 'en-IN';
 
-        recognition.onresult = (event: any) => {
-          let fullWords = '';
-          for (let i = 0; i < event.results.length; ++i) {
-            fullWords += event.results[i][0].transcript + ' ';
+            recognition.onstart = () => {
+              setIsListening(true);
+              setListeningStatus('🎙️ Listening... Speak your query clearly');
+            };
+
+            recognition.onresult = (event: any) => {
+              let fullWords = '';
+              for (let i = 0; i < event.results.length; ++i) {
+                fullWords += event.results[i][0].transcript + ' ';
+              }
+              fullWords = fullWords.trim();
+
+              if (fullWords) {
+                transcriptRef.current = fullWords;
+                setInputText(fullWords);
+                setListeningStatus(`🎙️ Heard: "${fullWords}"`);
+
+                // Reset silence detection timer: 3000ms after user pauses
+                if (silenceTimerRef.current) {
+                  clearTimeout(silenceTimerRef.current);
+                }
+                silenceTimerRef.current = setTimeout(() => {
+                  stopListeningAndSend();
+                }, 3000);
+              }
+            };
+
+            recognition.onerror = (event: any) => {
+              console.warn('Speech recognition status:', event.error);
+              if (event.error === 'not-allowed') {
+                setListeningStatus('⚠️ Microphone access blocked. Please allow mic in browser address bar.');
+              }
+            };
+
+            recognitionRef.current = recognition;
+            recognition.start();
+          } catch (e) {
+            console.warn('Web speech recognition start error:', e);
           }
-          fullWords = fullWords.trim();
+        }
 
-          if (fullWords) {
-            transcriptRef.current = fullWords;
-            setInputText(fullWords);
-            setListeningStatus(`🎙️ Heard: "${fullWords}"`);
-
-            // Reset silence detection timer: 1500ms after user finishes speaking
-            if (silenceTimerRef.current) {
-              clearTimeout(silenceTimerRef.current);
-            }
-            silenceTimerRef.current = setTimeout(() => {
-              console.log('Auto-submitting voice query after speech silence:', transcriptRef.current);
-              stopListeningAndSend();
-            }, 1500);
-          }
-        };
-
-        recognition.onerror = (event: any) => {
-          console.warn('Speech recognition error:', event.error);
-          if (event.error === 'not-allowed') {
-            setListeningStatus('⚠️ Microphone permission blocked. Click the lock/mic icon in the browser address bar to Allow.');
-            setIsListening(false);
-          } else if (event.error === 'no-speech') {
-            // Keep listening gently
-            setListeningStatus('🎙️ Still listening... Please speak your question');
-          } else {
-            setListeningStatus(`⚠️ Voice status: ${event.error}`);
-            setIsListening(false);
-          }
-        };
-
-        recognition.onend = () => {
-          setIsListening(false);
-          // If stopped and text hasn't been submitted yet
-          if (transcriptRef.current.trim()) {
-            const text = transcriptRef.current.trim();
-            transcriptRef.current = '';
-            setListeningStatus(`✓ Heard: "${text}" — Analyzing query...`);
-            handleSend(text, true);
-            setTimeout(() => setListeningStatus(''), 3000);
-          }
-        };
-
-        recognitionRef.current = recognition;
-        recognition.start();
+        setIsListening(true);
+        setListeningStatus('🎙️ Listening... Speak your query clearly');
       } catch (err: any) {
-        console.warn('Speech recognition start failed:', err);
+        console.warn('Microphone permission or start error:', err);
         setIsListening(false);
-        setListeningStatus(`Voice recognition error: ${err.message || err}`);
+        if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+          setListeningStatus('⚠️ Microphone permission blocked. Click the lock/mic icon in browser address bar to Allow.');
+        } else {
+          setListeningStatus(`⚠️ Mic error: ${err.message || 'Microphone unavailable'}`);
+        }
       }
     } else {
-      alert('Voice microphone input is enabled in Chrome, Edge, and Safari.');
+      alert('Voice microphone input is enabled on modern web browsers.');
     }
   };
 
@@ -328,14 +480,10 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = null;
     }
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch (e) {}
-    }
+    stopAudioCapture();
     transcriptRef.current = '';
-    setIsListening(false);
     setListeningStatus('');
+    setIsTranscribing(false);
   };
 
   const quickPrompts = [
@@ -348,11 +496,9 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
 
   const handleSend = async (textToSend?: string, isVoice = false) => {
     const rawText = textToSend || inputText;
-    // Strip leading mic emoji from quick prompt chips if present
     const text = rawText.replace(/^🎙️\s*/, '').trim();
     if (!text || loading) return;
 
-    // Stop speaking if user asks a new question
     stopSpeaking();
 
     const userMessage: Message = {
@@ -447,6 +593,31 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
     return `Greetings ${name} ji. Your query regarding "${biz}" has been recorded. All your registered equipment items, verification requests, and certificates are synchronized with the national legal metrology portal.`;
   };
 
+  // Soundwave visual bars based on real mic volume
+  const renderSoundWave = () => {
+    const bars = [
+      Math.max(4, Math.min(24, Math.round(audioLevel * 0.4))),
+      Math.max(6, Math.min(32, Math.round(audioLevel * 0.7))),
+      Math.max(8, Math.min(38, Math.round(audioLevel * 1.0))),
+      Math.max(6, Math.min(32, Math.round(audioLevel * 0.8))),
+      Math.max(4, Math.min(24, Math.round(audioLevel * 0.5)))
+    ];
+
+    return (
+      <View style={styles.soundWaveContainer}>
+        {bars.map((height, idx) => (
+          <View
+            key={idx}
+            style={[
+              styles.soundWaveBar,
+              { height, backgroundColor: audioLevel > 15 ? '#DC2626' : '#9CA3AF' }
+            ]}
+          />
+        ))}
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <GovHeader
@@ -464,7 +635,7 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
         {/* Powered by Gemini & Groq Banner */}
         <View style={styles.geminiBanner}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-            <Text style={styles.geminiBadge}>✨ Voice Assistant Active (Groq LLaMA 3.3 & Gemini)</Text>
+            <Text style={styles.geminiBadge}>✨ Voice Assistant Active (Groq Whisper & LLaMA AI)</Text>
             {isSpeaking && (
               <TouchableOpacity onPress={stopSpeaking} style={styles.speakingBadge}>
                 <Text style={styles.speakingBadgeText}>🔊 Speaking (Tap to Mute)</Text>
@@ -484,19 +655,14 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Active Speech Recognition Banner */}
-        {(isListening || !!listeningStatus) && (
+        {/* Active Speech Recognition & Real Audio Visualizer Banner */}
+        {(isListening || isTranscribing || !!listeningStatus) && (
           <View style={[styles.listeningActiveBanner, isListening && styles.listeningActiveBannerPulsing]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-              {isListening ? (
-                <View style={styles.micActivePulse}>
-                  <Text style={{ fontSize: 16 }}>🎙️</Text>
-                </View>
-              ) : (
-                <Text style={{ fontSize: 14 }}>💬</Text>
-              )}
+              {isListening && renderSoundWave()}
+              {isTranscribing && <ActivityIndicator size="small" color="#DC2626" style={{ marginRight: 6 }} />}
               <Text style={styles.listeningActiveText} numberOfLines={2}>
-                {listeningStatus || '🎙️ Listening carefully... Speak your question'}
+                {listeningStatus || (audioLevel > 10 ? '🎙️ Voice Detected! Listening...' : '🎙️ Speak your question now...')}
               </Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -622,16 +788,22 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
         <View style={styles.inputContainer}>
           {/* Voice Microphone Input Button */}
           <TouchableOpacity
-            style={[styles.micButton, isListening && styles.micButtonListening]}
+            style={[
+              styles.micButton,
+              isListening && styles.micButtonListening,
+              isTranscribing && styles.micButtonTranscribing
+            ]}
             onPress={toggleListening}
             activeOpacity={0.8}
           >
-            <Text style={styles.micButtonText}>{isListening ? '🛑' : '🎙️'}</Text>
+            <Text style={styles.micButtonText}>
+              {isListening ? '🛑' : isTranscribing ? '⏳' : '🎙️'}
+            </Text>
           </TouchableOpacity>
 
           <TextInput
             style={styles.inputField}
-            placeholder={isListening ? "Listening... Speak your query clearly" : "Tap mic to speak, or type your query..."}
+            placeholder={isListening ? "Listening to your voice... Speak now" : "Tap mic to speak, or type your query..."}
             placeholderTextColor={isListening ? "#DC2626" : Colors.textMuted}
             value={inputText}
             onChangeText={setInputText}
@@ -693,104 +865,121 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start'
   },
   botAvatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: Colors.primaryNavy,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#0A192F',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
-    marginBottom: 2
-  },
-  botAvatarText: {
-    fontSize: 14
-  },
-  messageBubble: {
-    maxWidth: '82%',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 14
-  },
-  bubbleUser: {
-    backgroundColor: Colors.accentAmber,
-    borderBottomRightRadius: 2
-  },
-  bubbleAssistant: {
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderBottomLeftRadius: 2,
+    marginRight: 10,
+    marginBottom: 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.45)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 1
+    elevation: 2
+  },
+  botAvatarText: {
+    fontSize: 15
+  },
+  messageBubble: {
+    maxWidth: '84%',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2
+  },
+  bubbleUser: {
+    backgroundColor: '#1E3A8A', // Deep Royal Blue
+    borderBottomRightRadius: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)'
+  },
+  bubbleAssistant: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderBottomLeftRadius: 3,
+    borderLeftWidth: 3.5,
+    borderLeftColor: '#0A192F'
   },
   bubbleSpeakingHighlight: {
     borderColor: '#3B82F6',
+    borderLeftColor: '#3B82F6',
     borderWidth: 1.5,
     backgroundColor: '#F8FAFC'
   },
   voiceQueryTag: {
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 4
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+    marginBottom: 6
   },
   voiceQueryTagText: {
     color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '700'
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.3
   },
   typingBubble: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12
+    gap: 10,
+    paddingVertical: 14
   },
   typingText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    fontStyle: 'italic'
+    fontSize: 12,
+    color: '#475569',
+    fontStyle: 'italic',
+    fontWeight: '600'
   },
   messageText: {
-    fontSize: 13,
-    lineHeight: 18
+    fontSize: 13.5,
+    lineHeight: 20
   },
   textUser: {
-    color: Colors.textWhite,
+    color: '#FFFFFF',
     fontWeight: '500'
   },
   textAssistant: {
-    color: Colors.textPrimary
+    color: '#0F172A',
+    fontWeight: '500'
   },
   bubbleFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginTop: 6,
-    gap: 6
+    marginTop: 8,
+    gap: 8
   },
   timeText: {
-    fontSize: 9
+    fontSize: 9.5,
+    fontWeight: '600'
   },
   timeUser: {
-    color: 'rgba(255, 255, 255, 0.75)'
+    color: 'rgba(255, 255, 255, 0.8)'
   },
   timeAssistant: {
-    color: Colors.textMuted
+    color: '#94A3B8'
   },
   fallbackTag: {
-    fontSize: 9,
-    color: Colors.textMuted
+    fontSize: 9.5,
+    color: '#94A3B8',
+    fontWeight: '600'
   },
   voicePlayBtn: {
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#BFDBFE'
   },
@@ -799,155 +988,206 @@ const styles = StyleSheet.create({
     borderColor: '#F87171'
   },
   promptsContainer: {
-    paddingVertical: 6,
-    backgroundColor: Colors.surface,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: Colors.border
+    borderTopColor: '#E2E8F0'
   },
   promptsScroll: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     gap: 8
   },
   promptChip: {
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.2,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1
   },
   promptText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#1D4ED8'
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#1E3A8A'
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: Colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: Colors.border
+    borderTopColor: '#E2E8F0',
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 3
   },
   inputField: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: Colors.textPrimary,
-    borderWidth: 1,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 13.5,
+    color: '#0F172A',
+    borderWidth: 1.2,
     borderColor: '#CBD5E1',
-    maxHeight: 80
+    maxHeight: 90
   },
   sendButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.accentAmber,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8
+    marginLeft: 10,
+    shadowColor: Colors.accentAmber,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3
   },
   sendButtonDisabled: {
-    backgroundColor: '#CBD5E1'
+    backgroundColor: '#CBD5E1',
+    shadowOpacity: 0
   },
   sendButtonText: {
-    color: Colors.textWhite,
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: 'bold'
   },
   micButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 8,
+    marginRight: 10,
     borderWidth: 1.5,
-    borderColor: '#CBD5E1'
+    borderColor: '#CBD5E1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
   },
   micButtonListening: {
     backgroundColor: '#FEE2E2',
     borderColor: '#EF4444',
+    borderWidth: 2,
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4
+  },
+  micButtonTranscribing: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#D97706',
     borderWidth: 2
   },
   micButtonText: {
-    fontSize: 18
+    fontSize: 20
   },
   voiceToggleBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)'
+    borderColor: 'rgba(255, 255, 255, 0.25)'
   },
   voiceToggleText: {
     color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '700'
+    fontSize: 10.5,
+    fontWeight: '800'
   },
   speakingBadge: {
-    backgroundColor: '#1E3A8A',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    backgroundColor: 'rgba(30, 58, 138, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#60A5FA'
   },
   speakingBadgeText: {
     color: '#93C5FD',
-    fontSize: 9,
-    fontWeight: '700'
+    fontSize: 9.5,
+    fontWeight: '800'
   },
   listeningActiveBanner: {
     backgroundColor: '#FEF2F2',
-    borderBottomWidth: 1,
+    borderBottomWidth: 1.5,
     borderBottomColor: '#FCA5A5',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2
   },
   listeningActiveBannerPulsing: {
     backgroundColor: '#FFF1F2',
     borderBottomColor: '#FB7185'
   },
-  micActivePulse: {
-    marginRight: 4
+  soundWaveContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3.5,
+    marginRight: 10,
+    height: 32,
+    paddingHorizontal: 6
+  },
+  soundWaveBar: {
+    width: 3.5,
+    borderRadius: 2
   },
   listeningActiveText: {
     color: '#991B1B',
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 12.5,
+    fontWeight: '800',
     flex: 1,
     marginLeft: 6
   },
   sendNowListeningBtn: {
     backgroundColor: '#16A34A',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2
   },
   sendNowListeningBtnText: {
     color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700'
+    fontSize: 11.5,
+    fontWeight: '800'
   },
   cancelListeningBtn: {
     backgroundColor: '#EF4444',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 10
   },
   cancelListeningBtnText: {
     color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700'
+    fontSize: 11.5,
+    fontWeight: '800'
   }
 });
+

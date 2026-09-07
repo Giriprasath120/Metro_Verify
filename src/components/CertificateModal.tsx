@@ -29,7 +29,8 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 }) => {
   const [downloading, setDownloading] = useState(false);
   const [liveTunnelUrl, setLiveTunnelUrl] = useState(PUBLIC_VERIFY_URL);
-  const [qrMode, setQrMode] = useState<'text' | 'url'>('text');
+  const [qrMode, setQrMode] = useState<'url' | 'text'>('url');
+  const [downloadNotification, setDownloadNotification] = useState<string | null>(null);
 
   useEffect(() => {
     // Dynamically query server for active tunnel URL
@@ -45,19 +46,22 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       });
   }, []);
 
-  if (!certificate) return null;
+  if (!visible || !certificate) return null;
 
   const certNumber = certificate.certificateNumber || certificate.id || 'LM-2026-CERT';
   const instId = certificate.instrumentId || 'INST-UNKNOWN';
   const issueDate = (certificate as any).issuedDate || (certificate as any).issueDate || new Date().toISOString().split('T')[0];
   const validUntil = certificate.validUntil || '2027-03-01';
-  const authority = (certificate as any).issuingAuthority || 'Directorate of Legal Metrology, Government of Telangana';
+  const authority = (certificate as any).issuingAuthority || 'Directorate of Legal Metrology, Government of Tamil Nadu';
   const officer = (certificate as any).officerName || 'Legal Metrology Officer';
   const standard = (certificate as any).verificationStandard || 'Legal Metrology Act, 2009 (Rule 14)';
   const fee = (certificate as any).verificationFee || '₹500';
   const rawHash = (certificate as any).securityHash || certificate.id || certNumber;
   const secHash = typeof rawHash === 'string' ? rawHash.slice(0, 16) : 'SEC-VERIFY-2026';
   const certStatus = certificate.status || 'ACTIVE';
+  const modelType = (certificate as any).instrumentType || (certificate as any).instrument?.model || 'Commercial Electronic Scale';
+  const serialNo = (certificate as any).serialNumber || (certificate as any).instrument?.serialNumber || 'SN-TN-2026-8812';
+  const ownerName = (certificate as any).ownerName || (certificate as any).owner?.businessName || (certificate as any).owner?.name || 'Sri Balaji Traders, Koyambedu, Chennai';
 
   const now = new Date();
   const expiryDate = new Date(validUntil);
@@ -70,20 +74,20 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     dynStatus = { text: `EXPIRING SOON (${diffDays}d left)`, color: '#D97706', bg: '#FEF3C7', border: '#FCD34D' };
   }
 
-  const gatcLab = (certificate as any).gatcLabName || 'Telangana State Legal Metrology Central Laboratory (GATC-01)';
+  const gatcLab = (certificate as any).gatcLabName || 'Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)';
 
   // Public verification endpoint URL
   const certIdParam = certificate.id || certNumber;
   const verifyUrl = `${liveTunnelUrl}/api/certificates/verify?id=${encodeURIComponent(certIdParam)}`;
 
   // 1. Comprehensive Digital Certificate Record (scannable offline by ANY phone without internet or web server)
-  const fullCertificatePayload = `GOVERNMENT OF INDIA • LEGAL METROLOGY
+  const fullCertificatePayload = `GOVERNMENT OF TAMIL NADU • LEGAL METROLOGY
 FORM VI DIGITAL VERIFICATION CERTIFICATE
 ========================================
 STATUS: ${dynStatus.text}
 CERTIFICATE NO: ${certNumber}
 INSTRUMENT UID: ${instId}
-ESTABLISHMENT: Sri Balaji Mandi & Agro Traders
+ESTABLISHMENT: Sri Balaji Traders, Koyambedu Market, Chennai
 OFFICER (LMO): ${officer}
 GATC TEST LAB: ${gatcLab}
 STANDARD: ${standard}
@@ -95,7 +99,7 @@ SECURITY HASH: ${secHash}
 NATIONAL REGISTER: ${verifyUrl}`;
 
   // 2. Active payload based on user selection: 'text' = guaranteed offline view; 'url' = web browser view
-  const activeQrPayload = qrMode === 'url' ? verifyUrl : fullCertificatePayload;
+  const activeQrPayload = (qrMode === 'url' ? verifyUrl : fullCertificatePayload) || verifyUrl || 'METRO-VERIFY-FORM-VI';
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -118,8 +122,13 @@ NATIONAL REGISTER: ${verifyUrl}`;
         link.click();
         document.body.removeChild(link);
         setTimeout(() => window.URL.revokeObjectURL(blobUrl), 1000);
+
+        setDownloadNotification(`✓ Certificate #${certNumber} downloaded successfully to your device!`);
+        setTimeout(() => setDownloadNotification(null), 5000);
       } else {
         await Linking.openURL(pdfUrl);
+        setDownloadNotification(`✓ Certificate #${certNumber} opened for download.`);
+        setTimeout(() => setDownloadNotification(null), 5000);
       }
     } catch (err: any) {
       Alert.alert(
@@ -171,12 +180,38 @@ NATIONAL REGISTER: ${verifyUrl}`;
           </View>
 
           <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent}>
+            {/* Download Notification Banner */}
+            {downloadNotification && (
+              <View style={{
+                backgroundColor: '#DCFCE7',
+                borderColor: '#86EFAC',
+                borderWidth: 1.5,
+                borderRadius: 10,
+                padding: 12,
+                marginBottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <Text style={{ fontSize: 18 }}>📥</Text>
+                  <Text style={{ color: '#15803D', fontWeight: '700', fontSize: 13 }}>
+                    {downloadNotification}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setDownloadNotification(null)}>
+                  <Text style={{ color: '#15803D', fontWeight: '800', fontSize: 14, paddingHorizontal: 6 }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* Certificate Frame */}
             <View style={styles.certFrame}>
+              {/* Executive Gov-Tech Accent Strip */}
               <View style={styles.nationalRibbon}>
-                <View style={[styles.ribbonBand, { backgroundColor: '#FF9933' }]} />
-                <View style={[styles.ribbonBand, { backgroundColor: '#FFFFFF' }]} />
-                <View style={[styles.ribbonBand, { backgroundColor: '#138808' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#D4AF37' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#0A192F' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#1E3A8A' }]} />
               </View>
 
               <View style={styles.certHeader}>
@@ -269,8 +304,24 @@ NATIONAL REGISTER: ${verifyUrl}`;
               {/* Details Table */}
               <View style={styles.detailsTable}>
                 <View style={styles.tableRow}>
+                  <Text style={styles.tableLabel}>Certificate No</Text>
+                  <Text style={[styles.tableValue, { fontWeight: '800', color: Colors.primaryNavy }]}>{certNumber}</Text>
+                </View>
+                <View style={styles.tableRow}>
                   <Text style={styles.tableLabel}>Instrument ID</Text>
                   <Text style={styles.tableValue}>{instId}</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableLabel}>Model / Type</Text>
+                  <Text style={styles.tableValue}>{modelType}</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableLabel}>Serial Number</Text>
+                  <Text style={styles.tableValue}>{serialNo}</Text>
+                </View>
+                <View style={styles.tableRow}>
+                  <Text style={styles.tableLabel}>Owner / Establishment</Text>
+                  <Text style={styles.tableValue}>{ownerName}</Text>
                 </View>
                 <View style={styles.tableRow}>
                   <Text style={styles.tableLabel}>Issuing Authority</Text>
@@ -317,22 +368,48 @@ NATIONAL REGISTER: ${verifyUrl}`;
               </View>
             </View>
 
-            {/* Action Buttons */}
+            {/* Download it as pdf Button - Prominent Action as requested by user */}
+            <TouchableOpacity
+              style={[styles.actionBtn, {
+                backgroundColor: '#1E3A8A',
+                borderColor: '#2563EB',
+                borderWidth: 1.5,
+                paddingVertical: 14,
+                marginBottom: 10,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 8,
+                borderRadius: 10,
+                shadowColor: '#1E3A8A',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 6,
+                elevation: 4,
+              }]}
+              onPress={handleDownload}
+              disabled={downloading}
+              activeOpacity={0.85}
+            >
+              <Text style={{ fontSize: 18 }}>⬇️</Text>
+              <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15, letterSpacing: 0.3 }}>
+                {downloading ? 'Downloading PDF Certificate...' : 'Download it as pdf'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Official Actions Row: Verified Document Actions */}
             <View style={styles.buttonRow}>
               <TouchableOpacity
-                style={[styles.actionBtn, styles.downloadBtn, downloading && { opacity: 0.6 }]}
-                onPress={handleDownload}
-                disabled={downloading}
-              >
-                <Text style={styles.actionBtnText}>
-                  {downloading ? 'Downloading PDF...' : '⬇ Download PDF'}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionBtn, styles.shareBtn]}
+                style={[styles.actionBtn, styles.shareBtn, { flex: 1 }]}
                 onPress={handleShare}
               >
-                <Text style={styles.shareBtnText}>🔗 Share Link</Text>
+                <Text style={styles.shareBtnText}>🔗 Share Public Link</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionBtn, { flex: 1, backgroundColor: '#0A192F', borderWidth: 0 }]}
+                onPress={onClose}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>✓ Close Certificate</Text>
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -345,23 +422,35 @@ NATIONAL REGISTER: ${verifyUrl}`;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(11, 37, 69, 0.7)',
+    backgroundColor: 'rgba(10, 25, 47, 0.82)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16
+    padding: 16,
+    ...(Platform.OS === 'web' ? {
+      position: 'fixed' as any,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 99999,
+      width: '100%',
+      height: '100%',
+    } : {}),
   },
   modalContent: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 460,
     maxHeight: '90%',
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10
   },
   modalHeader: {
     flexDirection: 'row',
@@ -401,16 +490,21 @@ const styles = StyleSheet.create({
   },
   certFrame: {
     borderWidth: 2,
-    borderColor: '#0B2545',
-    borderRadius: 8,
-    padding: 14,
-    backgroundColor: '#FFFFFF'
+    borderColor: '#D4AF37',
+    borderRadius: 10,
+    padding: 18,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4
   },
   nationalRibbon: {
     flexDirection: 'row',
     height: 4,
     width: '100%',
-    marginBottom: 10,
+    marginBottom: 12,
     borderRadius: 2,
     overflow: 'hidden'
   },
@@ -420,95 +514,98 @@ const styles = StyleSheet.create({
   },
   certHeader: {
     alignItems: 'center',
-    marginBottom: 10
+    marginBottom: 12
   },
   emblemIcon: {
-    fontSize: 24,
-    marginBottom: 2
+    fontSize: 28,
+    marginBottom: 4
   },
   govTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0B2545',
-    letterSpacing: 1
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0A192F',
+    letterSpacing: 1.2
   },
   deptTitle: {
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 9.5,
+    fontWeight: '800',
     color: '#475569',
-    letterSpacing: 0.5,
-    marginTop: 1
+    letterSpacing: 0.8,
+    marginTop: 2
   },
   certHeading: {
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 15,
+    fontWeight: '900',
     color: Colors.accentAmber,
-    marginTop: 6,
-    letterSpacing: 0.5
+    marginTop: 8,
+    letterSpacing: 0.8,
+    textAlign: 'center'
   },
   ruleText: {
-    fontSize: 9,
+    fontSize: 9.5,
     color: '#64748B',
     fontStyle: 'italic',
-    marginTop: 2
+    marginTop: 3,
+    textAlign: 'center'
   },
   badgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#E2E8F0',
-    marginVertical: 10
+    marginVertical: 12
   },
   certNumberText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: Colors.primaryNavy
+    fontSize: 13.5,
+    fontWeight: '900',
+    color: '#0A192F',
+    letterSpacing: 0.3
   },
   qrSection: {
     alignItems: 'center',
-    marginVertical: 10
+    marginVertical: 12
   },
   qrBox: {
-    padding: 10,
+    padding: 12,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3
   },
   qrCaption: {
     fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 6,
-    fontWeight: '500',
+    color: '#475569',
+    marginTop: 8,
+    fontWeight: '600',
     textAlign: 'center',
   },
   openVerifyBtn: {
-    marginTop: 8,
+    marginTop: 10,
     backgroundColor: '#0F766E',
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#0F766E',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
   },
   openVerifyBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.3,
   },
   verifyLinkText: {
@@ -516,126 +613,138 @@ const styles = StyleSheet.create({
     color: '#0284C7',
     textDecorationLine: 'underline',
     marginBottom: 6,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   scannedPreviewBox: {
     width: '100%',
     backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    padding: 10,
-    marginTop: 10
+    padding: 12,
+    marginTop: 12
   },
   scannedPreviewTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primaryNavy,
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#0A192F',
     marginBottom: 4
   },
   scannedStatusApproved: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 11.5,
+    fontWeight: '900',
     color: '#047857',
     marginBottom: 4
   },
   scannedPreviewText: {
     fontSize: 10.5,
     color: '#334155',
-    lineHeight: 15
+    lineHeight: 16
   },
   hashText: {
-    fontSize: 9,
-    color: Colors.textMuted,
+    fontSize: 9.5,
+    color: '#94A3B8',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    marginTop: 2
+    marginTop: 3
   },
   detailsTable: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 6,
-    marginVertical: 10,
+    borderRadius: 8,
+    marginVertical: 12,
     overflow: 'hidden'
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9'
   },
   tableRowHighlight: {
     flexDirection: 'row',
-    paddingVertical: 7,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     backgroundColor: '#FFF7ED'
   },
   tableLabel: {
-    width: 120,
+    width: 130,
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#64748B',
     fontWeight: '600'
   },
   tableValue: {
     flex: 1,
-    fontSize: 11,
-    color: Colors.textPrimary,
-    fontWeight: '600'
+    fontSize: 11.5,
+    color: '#0F172A',
+    fontWeight: '700'
   },
   tableLabelHighlight: {
-    width: 120,
+    width: 130,
     fontSize: 11,
-    color: Colors.accentAmber,
-    fontWeight: '700'
+    color: '#C2410C',
+    fontWeight: '800'
   },
   tableValueHighlight: {
     flex: 1,
-    fontSize: 11,
-    color: Colors.accentAmber,
-    fontWeight: '800'
+    fontSize: 11.5,
+    color: '#EA580C',
+    fontWeight: '900'
   },
   stampBox: {
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#059669',
-    borderRadius: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     alignItems: 'center',
     alignSelf: 'center',
-    marginTop: 6,
+    marginTop: 8,
     backgroundColor: '#ECFDF5',
-    transform: [{ rotate: '-2deg' }]
+    transform: [{ rotate: '-2deg' }],
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2
   },
   stampText: {
     color: '#059669',
-    fontWeight: '800',
-    fontSize: 11,
-    letterSpacing: 0.5
+    fontWeight: '900',
+    fontSize: 12,
+    letterSpacing: 0.8
   },
   stampSub: {
     color: '#059669',
-    fontSize: 8,
-    fontWeight: '600'
+    fontSize: 8.5,
+    fontWeight: '700',
+    marginTop: 1
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 16
+    gap: 12,
+    marginTop: 18
   },
   actionBtn: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2
   },
   downloadBtn: {
-    backgroundColor: Colors.primaryNavy
+    backgroundColor: '#0A192F'
   },
   actionBtnText: {
-    color: Colors.textWhite,
-    fontWeight: '700',
-    fontSize: 13
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.3
   },
   shareBtn: {
     backgroundColor: '#F1F5F9',
@@ -643,72 +752,75 @@ const styles = StyleSheet.create({
     borderColor: '#CBD5E1'
   },
   shareBtnText: {
-    color: Colors.textPrimary,
-    fontWeight: '600',
+    color: '#0F172A',
+    fontWeight: '700',
     fontSize: 13
   },
   dynStatusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 3.5,
+    borderRadius: 6,
     borderWidth: 1,
   },
   dynStatusBadgeText: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   dualEndorsementCard: {
     backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 10,
-    marginBottom: 6,
+    borderWidth: 1.5,
+    borderColor: '#86EFAC',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+    marginBottom: 8,
   },
   dualEndorsementTitle: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 11.5,
+    fontWeight: '900',
     color: '#15803D',
-    marginBottom: 2,
+    marginBottom: 3,
     textTransform: 'uppercase',
+    letterSpacing: 0.4
   },
   dualEndorsementText: {
-    fontSize: 10,
+    fontSize: 10.5,
     color: '#166534',
-    lineHeight: 14,
+    lineHeight: 15,
   },
   qrModeToggleRow: {
     flexDirection: 'row',
     backgroundColor: '#F1F5F9',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 3,
-    marginBottom: 12,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
   qrModeBtn: {
     flex: 1,
-    paddingVertical: 6,
-    borderRadius: 6,
+    paddingVertical: 7,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrModeBtnActive: {
-    backgroundColor: Colors.primaryNavy,
+    backgroundColor: '#0A192F',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
     elevation: 2,
   },
   qrModeBtnText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#64748B',
   },
   qrModeBtnTextActive: {
     color: '#FFFFFF',
+    fontWeight: '800'
   },
 });
+

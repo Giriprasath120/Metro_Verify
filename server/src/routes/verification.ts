@@ -34,8 +34,8 @@ router.post('/bulk', (req: Request, res: Response) => {
   // Call deterministic allocation engine for bulk split
   const allocation = allocateBulkBatch(
     {
-      state: state || 'Telangana',
-      district: district || 'Hyderabad North',
+      state: state || 'Tamil Nadu',
+      district: district || 'Chennai North',
       requestedDate: preferredDate || '2026-09-06',
       batchCount: count,
       isBulk: true

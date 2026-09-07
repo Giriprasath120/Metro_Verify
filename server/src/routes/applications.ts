@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import prisma from '../lib/prisma';
 import { calculateVerificationFee } from '../config/pricing';
+import { allocateSingleSlot } from '../utils/allocationEngine';
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.get('/', async (req: Request, res: Response) => {
           include: {
             assignedOfficer: true,
           },
+          orderBy: { assignedAt: 'desc' },
         },
       },
       orderBy: { submittedAt: 'desc' },
@@ -54,6 +56,7 @@ router.get('/:id', async (req: Request, res: Response) => {
           include: {
             assignedOfficer: true,
           },
+          orderBy: { assignedAt: 'desc' },
         },
       },
     });
@@ -118,7 +121,7 @@ router.post('/', async (req: Request, res: Response) => {
       const instCat = category || 'Non-Automatic Weighing Instrument';
       const instCap = capacity || '50 kg';
       const instAcc = accuracyClass || 'Class III';
-      const instLoc = location || 'Trade Premises, Osmangunj, Hyderabad';
+      const instLoc = location || 'Trade Premises, George Town, Chennai';
       const instSerial = serialNumber || `SN-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
       instrument = await prisma.instrument.create({
@@ -133,8 +136,8 @@ router.post('/', async (req: Request, res: Response) => {
           accuracyClass: instAcc,
           ownerId: finalOwnerId,
           location: instLoc,
-          district: 'Hyderabad North',
-          state: 'Telangana',
+          district: 'Chennai North',
+          state: 'Tamil Nadu',
           status: 'PENDING',
         },
       });
@@ -146,7 +149,8 @@ router.post('/', async (req: Request, res: Response) => {
 
     const cat = category || instrument.category || 'Non-Automatic Weighing Instrument';
     const accClass = accuracyClass || instrument.accuracyClass || 'Class III';
-    const feeCalculation = calculateVerificationFee(cat, accClass);
+    const cap = capacity || instrument.capacity || '50 kg';
+    const feeCalculation = calculateVerificationFee(cat, accClass, cap);
 
     const newApp = await prisma.application.create({
       data: {
@@ -154,7 +158,7 @@ router.post('/', async (req: Request, res: Response) => {
         instrumentId: instrument.id,
         ownerId: finalOwnerId,
         category: cat,
-        capacity: capacity || instrument.capacity,
+        capacity: cap,
         accuracyClass: accClass,
         preferredDate: preferredDate || new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0],
         preferredTimeSlot: preferredTimeSlot || '10:00 AM - 01:00 PM',
@@ -170,19 +174,10 @@ router.post('/', async (req: Request, res: Response) => {
       },
     });
 
-    // Update instrument status to SCHEDULED / PENDING
-    await prisma.instrument.update({
-      where: { id: instrument.id },
-      data: {
-        status: 'PENDING',
-        scheduledDate: newApp.preferredDate,
-        timeSlot: newApp.preferredTimeSlot,
-      },
-    });
-
+    // Newly submitted applications remain in 'SUBMITTED' state awaiting admin review & allocation
     return res.status(201).json({
       success: true,
-      message: `Verification request ${appId} submitted successfully for ₹${feeCalculation.totalFee}.`,
+      message: `Verification application ${appId} submitted successfully for ₹${feeCalculation.totalFee}. Placed in administrative queue for officer allocation.`,
       application: newApp,
       instrument,
     });

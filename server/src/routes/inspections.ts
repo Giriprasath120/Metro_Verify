@@ -497,13 +497,13 @@ router.post('/:id/pass-to-gatc', async (req: AuthRequest, res: Response) => {
       officerName: inspection.officer.name,
       officerBadge: inspection.officer.badgeNumber,
       officerDesignation: inspection.officer.designation || 'Legal Metrology Officer (LMO)',
-      district: inspection.officer.district || 'Hyderabad North',
+      district: inspection.officer.district || 'Chennai North',
       standardWeight: standardWeight !== undefined ? String(standardWeight) : inspection.standardWeight || '20 kg',
       indicatedValue: indicatedValue !== undefined ? String(indicatedValue) : inspection.indicatedValue || '20.000 kg',
       errorMargin: errorMargin !== undefined ? String(errorMargin) : inspection.errorMargin || '0.00%',
       toleranceLimit: toleranceLimit !== undefined ? String(toleranceLimit) : inspection.toleranceLimit || '±0.05%',
       status: 'CERTIFIED_BY_LMO_PASSED_TO_GATC',
-      gatcTargetLab: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+      gatcTargetLab: 'Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)',
       certifiedAt: today.toISOString(),
       remarks: remarks || inspection.remarks || 'Passed field calibration tests by LMO. Certified and passed to GATC Centre for Form VI Laboratory Endorsement.',
     };
@@ -552,7 +552,7 @@ router.post('/:id/pass-to-gatc', async (req: AuthRequest, res: Response) => {
       instrument: updatedInspection.instrument,
       verifyingOfficer: updatedInspection.officer.name,
       lmoCertificate,
-      gatcTarget: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+      gatcTarget: 'Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)',
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
@@ -605,13 +605,13 @@ router.get('/pending-gatc', async (_req: AuthRequest, res: Response) => {
           officerName: insp.officer?.name || 'V. Ramanathan',
           officerBadge: insp.officer?.badgeNumber || 'LMO-TS-HYD-041',
           officerDesignation: insp.officer?.designation || 'Legal Metrology Officer (LMO)',
-          district: insp.officer?.district || 'Hyderabad North',
+          district: insp.officer?.district || 'Chennai North',
           standardWeight: insp.standardWeight || '20 kg',
           indicatedValue: insp.indicatedValue || '20.000 kg',
           errorMargin: insp.errorMargin || '0.00%',
           toleranceLimit: insp.toleranceLimit || '±0.05%',
           status: 'CERTIFIED_BY_LMO_PASSED_TO_GATC',
-          gatcTargetLab: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+          gatcTargetLab: 'Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)',
           certifiedAt: insp.startedAt || new Date().toISOString(),
           remarks: insp.remarks || 'Passed field calibration tests by LMO.',
         };
@@ -679,7 +679,7 @@ router.post('/:id/gatc-endorse', async (req: AuthRequest, res: Response) => {
       validUntil: expiryStr,
       verifyingOfficer: inspection.officer.name,
       officerBadge: inspection.officer.badgeNumber,
-      endorsingLab: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+      endorsingLab: 'Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)',
       status: 'ACTIVE',
       verifyUrl: `/verify/${certId}`,
     });
@@ -698,7 +698,7 @@ router.post('/:id/gatc-endorse', async (req: AuthRequest, res: Response) => {
         officerName: inspection.officer.name,
         officerBadge: inspection.officer.badgeNumber,
         officerDesignation: inspection.officer.designation,
-        gatcLabName: 'Telangana State Legal Metrology Central Laboratory',
+        gatcLabName: 'Tamil Nadu State Legal Metrology Central Laboratory',
         gatcOfficerName: 'Central Testing Directorate',
         gatcOfficerBadge: 'GATC-TS-01',
         gatcApproved: true,
@@ -751,7 +751,7 @@ router.post('/:id/gatc-endorse', async (req: AuthRequest, res: Response) => {
       certificate,
       instrument: updatedInstrument,
       verifyingOfficer: inspection.officer.name,
-      gatcLab: 'Telangana State Legal Metrology Central Laboratory',
+      gatcLab: 'Tamil Nadu State Legal Metrology Central Laboratory',
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });

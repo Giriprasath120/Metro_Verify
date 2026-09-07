@@ -14,7 +14,8 @@ const getBaseUrl = (): string => {
 export const API_BASE_URL = getBaseUrl();
 
 // Live public HTTPS URL for phone QR code scanning (bypasses local network/firewall barriers)
-export const PUBLIC_VERIFY_URL = 'https://decreased-command-lives-deferred.trycloudflare.com';
+export const PUBLIC_VERIFY_URL = 'https://groundwater-comparisons-ontario-effect.trycloudflare.com';
+export const LOCAL_WIFI_VERIFY_URL = 'http://10.20.222.175:4000';
 
 export const API_ENDPOINTS = {
   // Public verification URL discovery
@@ -64,6 +65,7 @@ export const API_ENDPOINTS = {
 
   // Chatbot
   chatbotQuery: `${API_BASE_URL}/api/chatbot/query`,
+  chatbotVoiceTranscribe: `${API_BASE_URL}/api/chatbot/voice-transcribe`,
 
   // Schedule & Allocation
   scheduleAllocate: `${API_BASE_URL}/api/schedule/allocate`,
@@ -88,6 +90,9 @@ export const API_ENDPOINTS = {
   passToGatc: (id: string) => `${API_BASE_URL}/api/inspections/${id}/pass-to-gatc`,
   pendingGatc: `${API_BASE_URL}/api/inspections/pending-gatc`,
   gatcEndorse: (id: string) => `${API_BASE_URL}/api/inspections/${id}/gatc-endorse`,
+
+  // Notifications
+  notifications: `${API_BASE_URL}/api/notifications`,
 
   // Dashboard
   dashboard: (role: string) => `${API_BASE_URL}/dashboard/${role}`,

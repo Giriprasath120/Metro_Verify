@@ -37,8 +37,8 @@ let currentOfficer: OfficerProfile = {
   badgeNumber: 'LM-HYD-042',
   designation: 'Senior Legal Metrology Officer',
   department: 'Department of Legal Metrology',
-  district: 'Hyderabad',
-  jurisdiction: 'Hyderabad North',
+  district: 'Chennai',
+  jurisdiction: 'Chennai North',
 };
 
 // Try to initialize from localStorage if on web

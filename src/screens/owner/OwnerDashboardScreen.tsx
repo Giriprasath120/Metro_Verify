@@ -111,7 +111,7 @@ const INITIAL_BULK_REQUESTS: BulkRequestItem[] = [
     id: 'BR-2026-001',
     bulkBatchNumber: 'BLK/TS/HYD/2026/01',
     ownerId: 'OWN-101',
-    facilityName: 'Bowenpally Agricultural Wholesale Yard',
+    facilityName: 'Koyambedu Wholesale Market Complex, Chennai',
     category: 'Non-Automatic Weighing Instrument',
     instrumentCount: 5000,
     verifiedCount: 700,
@@ -131,7 +131,7 @@ const INITIAL_BULK_REQUESTS: BulkRequestItem[] = [
         completed: 700,
         pending: 0,
         status: 'Completed',
-        officerName: 'V. Ramanathan (LMO, Hyderabad North)'
+        officerName: 'V. Ramanathan (LMO, Chennai North)'
       },
       {
         batchId: 'Batch 2',
@@ -139,7 +139,7 @@ const INITIAL_BULK_REQUESTS: BulkRequestItem[] = [
         completed: 500,
         pending: 200,
         status: 'In Progress',
-        officerName: 'Sunita Rao (LMO, Secunderabad)'
+        officerName: 'Sunita Rao (LMO, Guindy)'
       },
       {
         batchId: 'Batch 3',
@@ -202,9 +202,9 @@ export const OwnerDashboardScreen: React.FC<OwnerDashboardScreenProps> = ({
     id: activeUser?.id || 'OWN-101',
     name: activeUser?.name || 'Rajesh Kumar',
     businessName: activeUser?.businessName || (activeUser?.name ? `${activeUser.name} Enterprises` : 'Sri Balaji Mandi & Agro Traders'),
-    district: activeUser?.district || 'Hyderabad',
-    state: activeUser?.state || 'Telangana',
-    address: (activeUser as any)?.address || `${activeUser?.district || 'Hyderabad'}, ${activeUser?.state || 'Telangana'}`,
+    district: activeUser?.district || 'Chennai',
+    state: activeUser?.state || 'Tamil Nadu',
+    address: (activeUser as any)?.address || `${activeUser?.district || 'Chennai'}, ${activeUser?.state || 'Tamil Nadu'}`,
     complianceScore: activeUser?.complianceScore ?? 100,
     complianceDeductions: (activeUser as any)?.complianceDeductions || [],
   };
@@ -297,7 +297,7 @@ const markNoticeAcknowledged = (appId: string) => {
             });
           setApplications(mapped);
 
-          // Find newly assigned application to alert the owner (strictly once!)
+          // Track newly assigned application for the notification banner and details view
           const newlyAssigned = mapped.find((item: ApplicationItem) =>
             item.assignedOfficer &&
             (item.status === 'SCHEDULED' || item.status === 'Scheduled' || item.status === 'IN_PROGRESS') &&
@@ -306,7 +306,7 @@ const markNoticeAcknowledged = (appId: string) => {
 
           if (newlyAssigned) {
             setAssignedNoticeItem(newlyAssigned);
-            setOfficerNoticeModalVisible(true);
+            // Kept ready for user click on banner or notification without intrusive unprompted popup
           }
         }
       }
@@ -377,7 +377,16 @@ const markNoticeAcknowledged = (appId: string) => {
   const activeBulkCount = bulkRequests.filter(
     b => b.status === 'SUBMITTED' || b.status === 'IN_PROGRESS' || b.status === 'PARTIALLY_COMPLETED'
   ).length;
+  const now = new Date();
   const expiringSoon = myInstruments.filter(i => i.status === 'Expiring Soon').length;
+  const expiredCount = myInstruments.filter(i => {
+    if (i.status === 'Expired') return true;
+    if (i.expiryDate) {
+      const exp = new Date(i.expiryDate);
+      return exp < now;
+    }
+    return false;
+  }).length;
   const verifiedActive = myInstruments.filter(i => i.status === 'Verified').length;
 
   // Withdrawal Handler: immediately remove from dashboard so it disappears
@@ -470,14 +479,44 @@ const markNoticeAcknowledged = (appId: string) => {
           </View>
         </View>
 
-        {/* High-Priority Alert Banner if instruments are expiring */}
+        {/* High-Priority Alert Banner if instruments are expired or expiring */}
+        {expiredCount > 0 && (
+          <View style={[styles.priorityWarningCard, { backgroundColor: '#FEF2F2', borderColor: '#FCA5A5' }]}>
+            <Text style={styles.warningIcon}>🚨</Text>
+            <View style={styles.warningTextCol}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={[styles.warningTitle, { color: '#991B1B' }]}>
+                  {expiredCount} Instrument{expiredCount > 1 ? 's' : ''} Stamping EXPIRED
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#DC2626', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}
+                  onPress={() => navigation.navigate('NewRequest')}
+                >
+                  <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 11 }}>Take for Re-verification ›</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.warningDesc, { color: '#B91C1C' }]}>
+                Operating with expired stamping incurs statutory penalties under Section 24 of the Legal Metrology Act. Submit for immediate re-verification.
+              </Text>
+            </View>
+          </View>
+        )}
+
         {expiringSoon > 0 && (
           <View style={styles.priorityWarningCard}>
             <Text style={styles.warningIcon}>⚠️</Text>
             <View style={styles.warningTextCol}>
-              <Text style={styles.warningTitle}>
-                {expiringSoon} Instrument{expiringSoon > 1 ? 's' : ''} Expiring Within 30 Days
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={styles.warningTitle}>
+                  {expiringSoon} Instrument{expiringSoon > 1 ? 's' : ''} Expiring Within 30 Days
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#D97706', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}
+                  onPress={() => navigation.navigate('NewRequest')}
+                >
+                  <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 11 }}>Schedule Re-verification ›</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={styles.warningDesc}>
                 Statutory re-verification is required under Rule 14. Avoid penalty by submitting a request early.
               </Text>
@@ -487,7 +526,14 @@ const markNoticeAcknowledged = (appId: string) => {
 
         {/* Officer Assigned Immediate Alert Banner */}
         {assignedApplications.length > 0 && (
-          <View style={styles.assignedAlertBanner}>
+          <TouchableOpacity
+            style={styles.assignedAlertBanner}
+            onPress={() => {
+              setAssignedNoticeItem(assignedApplications[0]);
+              setOfficerNoticeModalVisible(true);
+            }}
+            activeOpacity={0.85}
+          >
             <View style={styles.assignedAlertLeft}>
               <View style={styles.assignedAlertIconBox}>
                 <Text style={styles.assignedAlertIcon}>👮</Text>
@@ -495,25 +541,18 @@ const markNoticeAcknowledged = (appId: string) => {
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Text style={styles.assignedAlertTitle}>
-                    Verifying Officer Assigned: {assignedApplications[0].assignedOfficer?.name}
+                    Verifying Officer Allocated: {assignedApplications[0].assignedOfficer?.name}
                   </Text>
                   <View style={styles.officerPillBadge}>
                     <Text style={styles.officerPillBadgeText}>✓ ALLOCATED</Text>
                   </View>
                 </View>
                 <Text style={styles.assignedAlertDesc}>
-                  Application {assignedApplications[0].id} ({assignedApplications[0].instrumentName}) scheduled on {assignedApplications[0].scheduledDate || assignedApplications[0].preferredDate} ({assignedApplications[0].timeSlot || '10:00 AM - 01:00 PM'}).
+                  Application {assignedApplications[0].id} ({assignedApplications[0].instrumentName}) scheduled on {assignedApplications[0].scheduledDate || assignedApplications[0].preferredDate} ({assignedApplications[0].timeSlot || '10:00 AM - 01:00 PM'}). Tap to view official verification notice ›
                 </Text>
               </View>
             </View>
-            <TouchableOpacity
-              style={styles.assignedAlertCallBtn}
-              onPress={() => Linking.openURL(`tel:${assignedApplications[0].assignedOfficer?.phone || '9848012345'}`)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.assignedAlertCallText}>📞 Call Officer</Text>
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Top Metrics Row */}
@@ -707,7 +746,7 @@ const markNoticeAcknowledged = (appId: string) => {
                         <View style={{ flex: 1 }}>
                           <Text style={styles.submittedIndicationTitle}>REQUEST SUBMITTED BY OWNER</Text>
                           <Text style={styles.submittedIndicationSub}>
-                            Application registered in Telangana State Legal Metrology Portal. Awaiting LMO Officer smart allocation.
+                            Application registered in Tamil Nadu State Legal Metrology Portal. Awaiting LMO Officer smart allocation.
                           </Text>
                         </View>
                         <View style={styles.stagePillSubmitted}>
@@ -776,7 +815,7 @@ const markNoticeAcknowledged = (appId: string) => {
                             {app.assignedOfficer.name} ({app.assignedOfficer.badgeNumber || app.assignedOfficer.id})
                           </Text>
                           <Text style={styles.appOfficerSub}>
-                            {app.assignedOfficer.designation || 'Legal Metrology Officer'} • {app.assignedOfficer.district || 'Telangana'}
+                            {app.assignedOfficer.designation || 'Legal Metrology Officer'} • {app.assignedOfficer.district || 'Tamil Nadu'}
                           </Text>
                         </View>
                         <TouchableOpacity
@@ -811,13 +850,6 @@ const markNoticeAcknowledged = (appId: string) => {
                         <Text style={styles.assignedStatusBadgeText}>
                           ✓ Officer Allocated • In Progress
                         </Text>
-                        <TouchableOpacity
-                          style={styles.actionCallBtn}
-                          onPress={() => Linking.openURL(`tel:${app.assignedOfficer?.phone || '9848012345'}`)}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={styles.actionCallBtnText}>📞 Contact Officer</Text>
-                        </TouchableOpacity>
                       </View>
                     ) : (
                       <Text style={styles.statusNoteText}>
@@ -1040,11 +1072,11 @@ const markNoticeAcknowledged = (appId: string) => {
       >
         <View style={styles.noticeModalOverlay}>
           <View style={styles.noticeModalCard}>
-            {/* National Tricolor Bar */}
+            {/* Executive Gov-Tech Accent Bar */}
             <View style={styles.noticeRibbon}>
-              <View style={[styles.ribbonBand, { backgroundColor: '#FF9933' }]} />
-              <View style={[styles.ribbonBand, { backgroundColor: '#FFFFFF' }]} />
-              <View style={[styles.ribbonBand, { backgroundColor: '#138808' }]} />
+              <View style={[styles.ribbonBand, { backgroundColor: '#D4AF37' }]} />
+              <View style={[styles.ribbonBand, { backgroundColor: '#0A192F' }]} />
+              <View style={[styles.ribbonBand, { backgroundColor: '#1E3A8A' }]} />
             </View>
 
             <View style={styles.noticeModalHeader}>
@@ -1115,18 +1147,7 @@ const markNoticeAcknowledged = (appId: string) => {
 
             <View style={styles.noticeModalActions}>
               <TouchableOpacity
-                style={styles.noticeCallBtn}
-                onPress={() => {
-                  const phone = assignedNoticeItem?.assignedOfficer?.phone || '9848012345';
-                  Linking.openURL(`tel:${phone}`);
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.noticeCallBtnText}>📞 Call Officer Directly</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.noticeDismissBtn}
+                style={[styles.noticeDismissBtn, { width: '100%' }]}
                 onPress={() => {
                   if (assignedNoticeItem) {
                     markNoticeAcknowledged(assignedNoticeItem.id);
@@ -1148,11 +1169,14 @@ const markNoticeAcknowledged = (appId: string) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#F1F5F9'
   },
   container: {
-    padding: 16,
-    paddingBottom: 32
+    padding: 18,
+    paddingBottom: 36,
+    maxWidth: 1200,
+    width: '100%',
+    alignSelf: 'center'
   },
   alertSuccessBanner: {
     flexDirection: 'row',
@@ -1160,22 +1184,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECFDF5',
     borderWidth: 1,
     borderColor: '#6EE7B7',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 12
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 14,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2
   },
   alertSuccessIcon: {
     color: '#059669',
     fontWeight: '800',
     fontSize: 16,
-    marginRight: 8
+    marginRight: 10
   },
   alertSuccessText: {
     flex: 1,
     color: '#065F46',
-    fontSize: 12,
-    fontWeight: '600'
+    fontSize: 12.5,
+    fontWeight: '600',
+    lineHeight: 17
   },
   alertDismiss: {
     color: '#059669',
@@ -1184,182 +1214,292 @@ const styles = StyleSheet.create({
     padding: 4
   },
   profileCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 12
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3
   },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center'
   },
   avatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFF7ED',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(212, 175, 55, 0.4)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12
+    marginRight: 14
   },
   avatarText: {
-    fontSize: 22
+    fontSize: 24
   },
   profileInfo: {
     flex: 1
   },
   businessName: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0A192F',
+    letterSpacing: 0.2
   },
   ownerSub: {
     fontSize: 12,
-    color: Colors.textSecondary,
-    marginTop: 2
+    color: '#475569',
+    marginTop: 2,
+    fontWeight: '500'
   },
   addressText: {
     fontSize: 11,
-    color: Colors.textMuted,
-    marginTop: 2
+    color: '#64748B',
+    marginTop: 3
   },
   priorityWarningCard: {
     flexDirection: 'row',
     backgroundColor: '#FFFBEB',
     borderColor: '#FDE68A',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 14,
-    alignItems: 'flex-start'
+    borderWidth: 1.5,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    alignItems: 'flex-start',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2
   },
   warningIcon: {
-    fontSize: 18,
-    marginRight: 10,
-    marginTop: 2
+    fontSize: 20,
+    marginRight: 12,
+    marginTop: 1
   },
   warningTextCol: {
     flex: 1
   },
   warningTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#92400E'
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#92400E',
+    letterSpacing: 0.2
   },
   warningDesc: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#B45309',
+    marginTop: 3,
+    lineHeight: 16
+  },
+  assignedAlertBanner: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2
+  },
+  assignedAlertLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1
+  },
+  assignedAlertIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#DBEAFE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#93C5FD'
+  },
+  assignedAlertIcon: {
+    fontSize: 20
+  },
+  assignedAlertTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1D4ED8'
+  },
+  officerPillBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#86EFAC'
+  },
+  officerPillBadgeText: {
+    color: '#15803D',
+    fontSize: 9,
+    fontWeight: '800'
+  },
+  assignedAlertDesc: {
+    fontSize: 11,
+    color: '#1E40AF',
     marginTop: 2,
     lineHeight: 15
   },
+  assignedAlertCallBtn: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2
+  },
+  assignedAlertCallText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '800'
+  },
   statsGrid: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16
+    gap: 14,
+    marginBottom: 18
   },
   gaugeCard: {
-    flex: 1.1,
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    padding: 12,
+    flex: 1.15,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.border,
-    justifyContent: 'center'
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2
   },
   cardHeaderTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.textSecondary,
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#475569',
     textAlign: 'center',
-    marginBottom: 4
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
   },
   gaugeNote: {
-    fontSize: 9,
-    color: Colors.textMuted,
+    fontSize: 9.5,
+    color: '#64748B',
     textAlign: 'center',
-    marginTop: 4,
-    lineHeight: 12
+    marginTop: 6,
+    lineHeight: 13,
+    fontWeight: '500'
   },
   countersColumn: {
     flex: 1,
-    gap: 6
+    gap: 8
   },
   counterCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#E2E8F0',
     borderLeftWidth: 4,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1
   },
   counterValue: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.primaryNavy
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0A192F'
   },
   counterLabel: {
-    fontSize: 9,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-    marginTop: 1
+    fontSize: 9.5,
+    color: '#64748B',
+    fontWeight: '700',
+    marginTop: 1,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0A192F',
+    letterSpacing: 0.2
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 12,
-    marginBottom: 10
+    marginTop: 16,
+    marginBottom: 12
   },
   sectionCountBadge: {
     fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primaryNavy,
-    backgroundColor: '#E2E8F0',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10
+    fontWeight: '800',
+    color: '#1D4ED8',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12
   },
   viewAllText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.accentAmber
   },
   emptyCard: {
-    backgroundColor: '#F8FAFC',
-    padding: 14,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     alignItems: 'center'
   },
   emptyText: {
     fontSize: 12,
-    color: Colors.textMuted
+    color: '#94A3B8',
+    fontWeight: '500'
   },
   bulkRequestsList: {
-    gap: 12,
-    marginBottom: 16
+    gap: 14,
+    marginBottom: 18
   },
   bulkCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
     elevation: 2
   },
   bulkCardHeader: {
@@ -1369,36 +1509,37 @@ const styles = StyleSheet.create({
   },
   bulkIdCol: {
     flex: 1,
-    marginRight: 8
+    marginRight: 10
   },
   bulkIdText: {
     fontSize: 14,
-    fontWeight: '800',
-    color: Colors.primaryNavy
+    fontWeight: '900',
+    color: '#0A192F',
+    letterSpacing: 0.3
   },
   bulkFacilityText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#1E293B',
     marginTop: 2
   },
   bulkCategoryText: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#64748B',
     marginTop: 1
   },
   cardDivider: {
     height: 1,
     backgroundColor: '#F1F5F9',
-    marginVertical: 10
+    marginVertical: 12
   },
   bulkCountsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: '#F8FAFC',
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0'
   },
@@ -1406,33 +1547,35 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   bulkCountVal: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: Colors.textPrimary
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0A192F'
   },
   bulkCountLbl: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginTop: 2
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#64748B',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   bulkProgressContainer: {
-    marginTop: 10
+    marginTop: 12
   },
   bulkProgressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4
+    marginBottom: 5
   },
   bulkProgressTitle: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#64748B'
   },
   bulkProgressPercent: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '800',
-    color: Colors.primaryNavy
+    color: '#0A192F'
   },
   progressBarTrack: {
     height: 8,
@@ -1448,35 +1591,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9'
   },
   bulkBatchInfo: {
-    fontSize: 10,
-    color: '#64748B'
+    fontSize: 10.5,
+    color: '#64748B',
+    fontWeight: '600'
   },
   bulkDetailLink: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primaryNavy
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#1D4ED8'
   },
   applicationsList: {
-    gap: 10,
-    marginBottom: 16
+    gap: 12,
+    marginBottom: 18
   },
   applicationCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
-    padding: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border
+    borderColor: '#E2E8F0',
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2
   },
   applicationCardWithdrawn: {
     backgroundColor: '#F8FAFC',
     borderColor: '#E2E8F0',
-    opacity: 0.85
+    opacity: 0.8
   },
   appTopRow: {
     flexDirection: 'row',
@@ -1485,59 +1634,61 @@ const styles = StyleSheet.create({
   },
   appIdCol: {
     flex: 1,
-    marginRight: 8
+    marginRight: 10
   },
   appIdText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: Colors.primaryNavy
+    fontSize: 13.5,
+    fontWeight: '900',
+    color: '#0A192F',
+    letterSpacing: 0.3
   },
   appInstrumentName: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#1E293B',
     marginTop: 2
   },
   appCategoryText: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#64748B',
     marginTop: 1
   },
   appDetailsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 6
+    marginBottom: 8
   },
   detailCol: {
     flex: 1
   },
   appMetaLabel: {
     fontSize: 10,
-    color: Colors.textMuted,
+    color: '#64748B',
     textTransform: 'uppercase',
-    fontWeight: '600'
+    fontWeight: '700',
+    letterSpacing: 0.3
   },
   appMetaVal: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: Colors.textPrimary,
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F172A',
     marginTop: 2
   },
   appMetaFee: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: 13.5,
+    fontWeight: '900',
     color: '#047857',
     marginTop: 2
   },
   appRuleText: {
-    fontSize: 10,
+    fontSize: 10.5,
     color: '#64748B',
     fontStyle: 'italic',
     marginTop: 4
   },
   appActionRow: {
-    marginTop: 10,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
     flexDirection: 'row',
@@ -1546,31 +1697,130 @@ const styles = StyleSheet.create({
   },
   withdrawBtn: {
     borderWidth: 1,
-    borderColor: '#EF4444',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 8,
     backgroundColor: '#FEF2F2'
   },
   withdrawBtnText: {
     color: '#DC2626',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700'
   },
+  assignedStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%'
+  },
+  assignedStatusBadgeText: {
+    fontSize: 11.5,
+    color: '#059669',
+    fontWeight: '800'
+  },
+  actionCallBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8
+  },
+  actionCallBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11.5,
+    fontWeight: '800'
+  },
   statusNoteText: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#64748B',
-    fontWeight: '500'
+    fontWeight: '600'
+  },
+  appOfficerCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 10
+  },
+  appOfficerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center'
+  },
+  appOfficerIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  appOfficerIcon: {
+    fontSize: 18
+  },
+  appOfficerTitle: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#15803D',
+    letterSpacing: 0.3
+  },
+  badgeAssignedPill: {
+    backgroundColor: '#15803D',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 4
+  },
+  badgeAssignedPillText: {
+    color: '#FFFFFF',
+    fontSize: 8.5,
+    fontWeight: '800'
+  },
+  appOfficerName: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0A192F',
+    marginTop: 2
+  },
+  appOfficerSub: {
+    fontSize: 10.5,
+    color: '#475569',
+    marginTop: 1
+  },
+  appOfficerCallBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 6
+  },
+  appOfficerCallText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  appOfficerFooter: {
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(21, 128, 61, 0.15)'
+  },
+  appOfficerScheduleText: {
+    fontSize: 11,
+    color: '#166534'
   },
   instrumentsList: {
-    gap: 10
+    gap: 12
   },
   instrumentCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
     borderWidth: 1,
-    borderColor: Colors.border
+    borderColor: '#E2E8F0',
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 2
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -1579,16 +1829,16 @@ const styles = StyleSheet.create({
   },
   modelCol: {
     flex: 1,
-    marginRight: 8
+    marginRight: 10
   },
   modelName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#0A192F'
   },
   categoryText: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#64748B',
     marginTop: 2
   },
   cardBottomRow: {
@@ -1598,44 +1848,45 @@ const styles = StyleSheet.create({
   },
   metaLabel: {
     fontSize: 11,
-    color: Colors.textSecondary
+    color: '#64748B'
   },
   metaValue: {
-    fontWeight: '600',
-    color: Colors.textPrimary
+    fontWeight: '700',
+    color: '#0F172A'
   },
   idBadgeHighlight: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EFF6FF',
-    borderWidth: 1.5,
-    borderColor: '#2563EB',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
-    gap: 4
+    borderWidth: 1.2,
+    borderColor: '#93C5FD',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    gap: 5
   },
   idBadgeIcon: {
     fontSize: 10
   },
   idBadgeLabel: {
     fontSize: 9,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1E40AF',
     letterSpacing: 0.5
   },
   idBadgeValue: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#1D4ED8',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     letterSpacing: 0.5
   },
   passportLink: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.primaryNavy
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#1D4ED8'
   },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(11, 37, 69, 0.7)',
@@ -1917,175 +2168,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: Colors.textWhite
-  },
-  // Officer Assigned Immediate Alert Banner
-  assignedAlertBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1.5,
-    borderColor: '#3B82F6',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    shadowColor: '#3B82F6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  assignedAlertLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 10,
-  },
-  assignedAlertIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: '#DBEAFE',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  assignedAlertIcon: {
-    fontSize: 20,
-  },
-  assignedAlertTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#1E3A8A',
-  },
-  officerPillBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-  },
-  officerPillBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#166534',
-  },
-  assignedAlertDesc: {
-    fontSize: 11,
-    color: '#1E40AF',
-    marginTop: 2,
-    lineHeight: 15,
-  },
-  assignedAlertCallBtn: {
-    backgroundColor: '#1E40AF',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  assignedAlertCallText: {
-    color: '#FFFFFF',
-    fontSize: 11.5,
-    fontWeight: '800',
-  },
-  // In-Card Assigned Officer Box
-  appOfficerCard: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-    borderRadius: 8,
-    padding: 10,
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  appOfficerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  appOfficerIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#DCFCE7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  appOfficerIcon: {
-    fontSize: 16,
-  },
-  appOfficerTitle: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#15803D',
-    letterSpacing: 0.4,
-  },
-  badgeAssignedPill: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  badgeAssignedPillText: {
-    fontSize: 8.5,
-    fontWeight: '800',
-    color: '#15803D',
-  },
-  appOfficerName: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.primaryNavy,
-    marginTop: 1,
-  },
-  appOfficerSub: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  appOfficerCallBtn: {
-    backgroundColor: '#059669',
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    marginLeft: 8,
-  },
-  appOfficerCallText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  appOfficerFooter: {
-    borderTopWidth: 1,
-    borderColor: '#DCFCE7',
-    paddingTop: 6,
-    marginTop: 6,
-  },
-  appOfficerScheduleText: {
-    fontSize: 10.5,
-    color: '#14532D',
-  },
-  // Card Actions for Assigned
-  assignedStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  assignedStatusBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#059669',
-  },
-  actionCallBtn: {
-    backgroundColor: '#0B2545',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-  },
-  actionCallBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
   },
   // Notice Modal for Owner
   noticeModalOverlay: {

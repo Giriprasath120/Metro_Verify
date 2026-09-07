@@ -19,11 +19,11 @@ export const RoleSelectScreen: React.FC<RoleSelectScreenProps> = ({ onSelectRole
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primaryNavy} />
       
-      {/* Top Banner Ribbon */}
+      {/* Executive Gov-Tech Accent Strip */}
       <View style={styles.topTricolor}>
-        <View style={[styles.tricolorBand, { backgroundColor: '#FF9933' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#FFFFFF' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#138808' }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#D4AF37' }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#0A192F' }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#1E3A8A' }]} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>

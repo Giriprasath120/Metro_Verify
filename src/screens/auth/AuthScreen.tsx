@@ -46,8 +46,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [regBusiness, setRegBusiness] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
-  const [regState, setRegState] = useState('Telangana');
-  const [regDistrict, setRegDistrict] = useState('Hyderabad');
+  const [regState, setRegState] = useState('Tamil Nadu');
+  const [regDistrict, setRegDistrict] = useState('Chennai');
   const [regAddress, setRegAddress] = useState('');
   const [regBadge, setRegBadge] = useState('');
   const [regPassword, setRegPassword] = useState('password123');
@@ -145,11 +145,11 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primaryNavy} />
 
-      {/* National Tricolor Top Ribbon */}
+      {/* Executive Gov-Tech Accent Strip */}
       <View style={styles.topTricolor}>
-        <View style={[styles.tricolorBand, { backgroundColor: '#FF9933' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#FFFFFF' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#138808' }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#D4AF37' }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#0A192F' }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#1E3A8A' }]} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
@@ -380,7 +380,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                   style={styles.textInput}
                   value={regState}
                   onChangeText={setRegState}
-                  placeholder="Telangana"
+                  placeholder="Tamil Nadu"
                 />
               </View>
               <View style={styles.col}>
@@ -389,7 +389,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
                   style={styles.textInput}
                   value={regDistrict}
                   onChangeText={setRegDistrict}
-                  placeholder="Hyderabad"
+                  placeholder="Chennai"
                 />
               </View>
             </View>
@@ -399,7 +399,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
               style={styles.textInput}
               value={regAddress}
               onChangeText={setRegAddress}
-              placeholder="e.g. Plot 14, Osmangunj Commercial Yard, Hyderabad"
+              placeholder="e.g. Plot 14, George Town Commercial Yard, Chennai"
             />
 
             <View style={styles.twoColRow}>
@@ -495,179 +495,197 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   appTitleCard: {
-    backgroundColor: Colors.primaryNavy,
+    backgroundColor: '#0A192F',
     width: '100%',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 10,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 14,
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
   },
   appTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
-    color: Colors.textWhite,
-    letterSpacing: 2,
+    color: '#FFFFFF',
+    letterSpacing: 2.5,
   },
   appSubtitle: {
-    fontSize: 11,
-    color: '#93C5FD',
+    fontSize: 11.5,
+    color: 'rgba(203, 213, 225, 0.9)',
     textAlign: 'center',
-    marginTop: 3,
+    marginTop: 4,
+    fontWeight: '500',
   },
   sihBadge: {
-    backgroundColor: 'rgba(217, 119, 6, 0.25)',
+    backgroundColor: 'rgba(212, 175, 55, 0.15)',
     borderWidth: 1,
-    borderColor: Colors.accentAmber,
-    paddingHorizontal: 8,
+    borderColor: '#D4AF37',
+    paddingHorizontal: 10,
     paddingVertical: 3,
-    borderRadius: 4,
-    marginTop: 8,
+    borderRadius: 6,
+    marginTop: 10,
   },
   sihBadgeText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: Colors.accentAmber,
-    letterSpacing: 0.5,
+    fontSize: 9.5,
+    fontWeight: '900',
+    color: '#D4AF37',
+    letterSpacing: 0.8,
   },
   modeToggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#E2E8F0',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 3,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   modeTab: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
   },
   modeTabActive: {
-    backgroundColor: Colors.surface,
+    backgroundColor: '#FFFFFF',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
     elevation: 2,
   },
   modeTabText: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#64748B',
   },
   modeTabTextActive: {
-    color: Colors.primaryNavy,
-    fontWeight: '800',
+    color: '#0A192F',
+    fontWeight: '900',
   },
   sectionHeading: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '800',
-    color: Colors.primaryNavy,
-    marginBottom: 8,
+    color: '#0A192F',
+    marginBottom: 10,
+    letterSpacing: 0.2,
   },
   roleTabsGrid: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 16,
+    marginBottom: 18,
   },
   roleTab: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
-    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 12,
     paddingHorizontal: 6,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: Colors.border,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   roleTabSelected: {
-    borderColor: Colors.primaryNavy,
+    borderColor: '#2563EB',
     backgroundColor: '#EFF6FF',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   roleTabIcon: {
-    fontSize: 20,
+    fontSize: 22,
     marginBottom: 4,
   },
   roleTabLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#334155',
     textAlign: 'center',
   },
   roleTabLabelSelected: {
-    color: Colors.primaryNavy,
-    fontWeight: '800',
+    color: '#1D4ED8',
+    fontWeight: '900',
   },
   roleTabSub: {
     fontSize: 9,
-    color: Colors.textMuted,
+    color: '#64748B',
     marginTop: 2,
     textAlign: 'center',
   },
   formCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: '#E2E8F0',
+    padding: 18,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   formHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingBottom: 8,
+    marginBottom: 14,
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
   },
   formTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: Colors.primaryNavy,
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#0A192F',
     flex: 1,
   },
   sslBadge: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#059669',
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#047857',
     backgroundColor: '#ECFDF5',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   inputLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#475569',
-    marginTop: 10,
-    marginBottom: 4,
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#334155',
+    marginTop: 12,
+    marginBottom: 5,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
   inputHint: {
-    fontSize: 10,
+    fontSize: 10.5,
     color: '#64748B',
-    marginTop: 3,
+    marginTop: 4,
     fontStyle: 'italic',
   },
   textInput: {
     backgroundColor: '#F8FAFC',
-    borderWidth: 1,
+    borderWidth: 1.2,
     borderColor: '#CBD5E1',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    fontSize: 13,
-    color: Colors.textPrimary,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 13.5,
+    color: '#0F172A',
   },
   twoColRow: {
     flexDirection: 'row',
@@ -677,63 +695,66 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   quickAccountsSection: {
-    marginTop: 14,
-    paddingTop: 12,
+    marginTop: 16,
+    paddingTop: 14,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
   quickAccountsTitle: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '800',
     color: '#475569',
-    marginBottom: 8,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   demoChipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 7,
   },
   demoChip: {
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 6,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.2,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   demoChipActive: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#EFF6FF',
     borderColor: '#93C5FD',
   },
   demoChipText: {
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 10.5,
+    fontWeight: '700',
     color: '#334155',
   },
   demoChipTextActive: {
     color: '#1D4ED8',
-    fontWeight: '800',
+    fontWeight: '900',
   },
   primaryButton: {
-    backgroundColor: Colors.primaryNavy,
-    paddingVertical: 13,
-    borderRadius: 8,
+    backgroundColor: '#0A192F',
+    paddingVertical: 14,
+    borderRadius: 10,
     alignItems: 'center',
-    marginTop: 16,
-    shadowColor: Colors.primaryNavy,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    marginTop: 18,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   primaryButtonText: {
-    color: Colors.textWhite,
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.5,
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '900',
+    letterSpacing: 0.8,
   },
+
 });
 

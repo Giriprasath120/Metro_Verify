@@ -21,15 +21,23 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
   let config = Colors.status.pending;
   let displayText = status;
 
-  if (normalized === 'verified' || normalized === 'active' || normalized === 'gatc endorsed' || normalized === 'gatc_approved') {
+  if (normalized === 'pending' || normalized === 'not started' || normalized === 'not_started') {
+    config = {
+      bg: '#FEF2F2',
+      border: '#FCA5A5',
+      text: '#DC2626',
+      dot: '#EF4444'
+    };
+    displayText = '⚠️ Pending / Not Started';
+  } else if (normalized === 'verified' || normalized === 'active' || normalized === 'gatc endorsed' || normalized === 'gatc_approved') {
     config = Colors.status.verified;
     displayText = normalized === 'active' ? 'Active (Form VI)' : 'Verified (GATC)';
   } else if (normalized.includes('passed to gatc') || normalized.includes('passed_to_gatc') || normalized === 'gatc_queue' || normalized === 'certified_by_lmo') {
     config = {
-      bg: '#FAF5FF',
-      border: '#E9D5FF',
-      text: '#7E22CE',
-      dot: '#A855F7'
+      bg: '#DCFCE7',
+      border: '#86EFAC',
+      text: '#15803D',
+      dot: '#22C55E'
     };
     displayText = '🔬 Passed to GATC';
   } else if (normalized === 'submitted' || normalized === 'request submitted') {
@@ -43,7 +51,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
   } else if (normalized === 'scheduled') {
     config = Colors.status.scheduled;
   } else if (normalized === 'in progress' || normalized === 'in_progress') {
-    config = Colors.status.inProgress;
+    config = {
+      bg: '#EFF6FF',
+      border: '#BFDBFE',
+      text: '#2563EB',
+      dot: '#3B82F6'
+    };
+    displayText = '⏳ In Progress';
   } else if (normalized === 'expiring soon' || normalized === 'expiring_soon') {
     config = Colors.status.expiringSoon;
   } else if (normalized === 'expired' || normalized === 'rejected') {
@@ -60,7 +74,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
         isSmall && styles.badgeSmall
       ]}
     >
-      <View style={[styles.dot, { backgroundColor: config.dot }, isSmall && styles.dotSmall]} />
+      <View style={[styles.dotWrapper, isSmall && styles.dotWrapperSmall]}>
+        <View style={[styles.dotGlow, { backgroundColor: config.dot }]} />
+        <View style={[styles.dot, { backgroundColor: config.dot }]} />
+      </View>
       <Text style={[styles.text, { color: config.text }, isSmall && styles.textSmall]}>
         {displayText}
       </Text>
@@ -72,35 +89,56 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignSelf: 'flex-start'
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1.2,
+    alignSelf: 'flex-start',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1
   },
   badgeSmall: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 12,
+    borderWidth: 1
   },
-  dot: {
+  dotWrapper: {
+    width: 8,
+    height: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    position: 'relative'
+  },
+  dotWrapperSmall: {
     width: 6,
     height: 6,
-    borderRadius: 3,
-    marginRight: 5
-  },
-  dotSmall: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
     marginRight: 4
   },
+  dotGlow: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    opacity: 0.35
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5
+  },
   text: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.2
+    fontSize: 11.5,
+    fontWeight: '700',
+    letterSpacing: 0.3
   },
   textSmall: {
-    fontSize: 10
+    fontSize: 10,
+    letterSpacing: 0.2
   }
 });
+

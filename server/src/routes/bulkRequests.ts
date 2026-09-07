@@ -78,6 +78,7 @@ router.post('/', async (req: Request, res: Response) => {
       ownerId,
       facilityName,
       category,
+      capacity,
       instrumentCount,
       preferredDate,
       remarks,
@@ -86,10 +87,10 @@ router.post('/', async (req: Request, res: Response) => {
     const count = Number(instrumentCount) || 10;
     const countTotal = await prisma.bulkRequest.count();
     const bulkId = `BR-2026-${String(countTotal + 1).padStart(3, '0')}`;
-    const batchNumber = `BLK/TS/HYD/2026/${String(countTotal + 1).padStart(2, '0')}`;
+    const batchNumber = `BLK/TN/CHN/2026/${String(countTotal + 1).padStart(2, '0')}`;
 
     const cat = category || 'Non-Automatic Weighing Instrument';
-    const unitFee = calculateVerificationFee(cat);
+    const unitFee = calculateVerificationFee(cat, undefined, capacity);
     const totalEstimated = unitFee.totalFee * count;
 
     // Verify or fallback owner

@@ -14,6 +14,7 @@ import {
 import { GovHeader } from '../../components/GovHeader';
 import { Colors } from '../../theme/colors';
 import { calculateVerificationFee } from '../../config/pricing';
+import { PaymentModal } from '../../components/PaymentModal';
 import { API_ENDPOINTS } from '../../config/api';
 import { getActiveUser } from '../../services/authService';
 
@@ -37,12 +38,16 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
   const [category, setCategory] = useState('Non-Automatic Weighing Instrument');
   const [capacity, setCapacity] = useState('50 kg');
   const [location, setLocation] = useState(
-    activeUser?.address || (activeUser?.district ? `${activeUser.district}, ${activeUser.state || 'Telangana'}` : 'Bowenpally Agricultural Wholesale Yard')
+    activeUser?.address || (activeUser?.district ? `${activeUser.district}, ${activeUser.state || 'Tamil Nadu'}` : 'Koyambedu Wholesale Market Complex, Chennai')
   );
   const [remarks, setRemarks] = useState('Annual mandatory statutory re-verification');
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const [submittingSingle, setSubmittingSingle] = useState(false);
   const [singleSuccess, setSingleSuccess] = useState<any | null>(null);
+
+  // Payment Modal State
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [pendingPaymentType, setPendingPaymentType] = useState<'single' | 'bulk'>('single');
 
   // Hidden file input ref for camera / image selection on Web
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -66,35 +71,40 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
     }
   };
 
-  // Dynamically compute statutory fee based on chosen category
+  // Dynamically compute statutory fee based on chosen category AND capacity
   const dynamicFeeBreakdown = useMemo(() => {
-    return calculateVerificationFee(category, 'Class III');
-  }, [category]);
+    return calculateVerificationFee(category, 'Class III', capacity);
+  }, [category, capacity]);
 
   // Bulk form state
-  const [bulkFacilityName, setBulkFacilityName] = useState('Bowenpally Agricultural Wholesale Yard');
+  const [bulkFacilityName, setBulkFacilityName] = useState('Koyambedu Wholesale Market Complex, Chennai');
   const [bulkCategory, setBulkCategory] = useState('Non-Automatic Weighing Instrument');
+  const [bulkCapacity, setBulkCapacity] = useState('50 kg');
   const [bulkCountInput, setBulkCountInput] = useState('100');
   const [bulkRemarks, setBulkRemarks] = useState('Bulk pre-procurement weighing verification');
   const [submittingBulk, setSubmittingBulk] = useState(false);
   const [bulkSuccess, setBulkSuccess] = useState<any | null>(null);
 
-  // Bulk dynamic fee calculation
+  // Bulk dynamic fee calculation based on bulkCategory AND bulkCapacity
   const bulkTotalCount = parseInt(bulkCountInput, 10) || 1;
   const bulkUnitFee = useMemo(() => {
-    return calculateVerificationFee(bulkCategory);
-  }, [bulkCategory]);
+    return calculateVerificationFee(bulkCategory, 'Class III', bulkCapacity);
+  }, [bulkCategory, bulkCapacity]);
   const bulkEstimatedTotal = bulkUnitFee.totalFee * bulkTotalCount;
 
-  // Single Submission (Automatic scheduling by Dept)
-  const handleSingleSubmit = async () => {
+  // Single Submission Trigger: opens Razorpay Payment Portal
+  const handleSingleSubmit = () => {
     if (!model.trim()) {
       Alert.alert('Model Name Required', 'Please enter the model or equipment name.');
       return;
     }
+    setPendingPaymentType('single');
+    setPaymentModalVisible(true);
+  };
 
+  // Perform actual API submission after payment verification
+  const executeActualSingleSubmit = async (paymentTxId?: string) => {
     setSubmittingSingle(true);
-
     const autoScheduledDate = new Date(Date.now() + 86400000 * 7).toISOString().split('T')[0];
     const autoTimeSlot = '10:00 AM - 01:00 PM';
 
@@ -109,7 +119,7 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
       preferredDate: autoScheduledDate,
       preferredTimeSlot: autoTimeSlot,
       location,
-      remarks,
+      remarks: remarks ? `${remarks} (Paid via Razorpay: ${paymentTxId || 'Verified'})` : `Paid via Razorpay: ${paymentTxId || 'Verified'}`,
       photoUrl: capturedPhoto || undefined,
     };
 
@@ -138,25 +148,29 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
     }
   };
 
-  // Bulk Submission
-  const handleBulkSubmit = async () => {
+  // Bulk Submission Trigger: opens Razorpay Payment Portal
+  const handleBulkSubmit = () => {
     if (bulkTotalCount < 1) {
       Alert.alert('Quantity Required', 'Please enter a valid count of instruments for bulk verification.');
       return;
     }
+    setPendingPaymentType('bulk');
+    setPaymentModalVisible(true);
+  };
 
+  // Perform actual Bulk API submission after payment verification
+  const executeActualBulkSubmit = async (paymentTxId?: string) => {
     setSubmittingBulk(true);
-
     const autoScheduledDate = new Date(Date.now() + 86400000 * 10).toISOString().split('T')[0];
 
     const payload = {
       ownerId: currentOwnerId,
       facilityName: bulkFacilityName,
-      category: bulkCategory,
+      category: `${bulkCategory} (${bulkCapacity})`,
       instrumentCount: bulkTotalCount,
-      district: activeUser?.district || 'Hyderabad North',
+      district: activeUser?.district || 'Chennai North',
       preferredDate: autoScheduledDate,
-      remarks: bulkRemarks
+      remarks: bulkRemarks ? `${bulkRemarks} (Paid via Razorpay: ${paymentTxId || 'Verified'})` : `Paid via Razorpay: ${paymentTxId || 'Verified'}`
     };
 
     try {
@@ -278,7 +292,14 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 </View>
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Registry Status:</Text>
-                  <Text style={styles.summaryValStatus}>SCHEDULED IN REGISTRY</Text>
+                  <Text style={[styles.summaryValStatus, { color: '#D97706', backgroundColor: '#FEF3C7', borderColor: '#FCD34D' }]}>
+                    SUBMITTED (Awaiting Officer Allocation)
+                  </Text>
+                </View>
+                <View style={{ marginTop: 12, padding: 10, backgroundColor: '#EFF6FF', borderRadius: 8, borderWidth: 1, borderColor: '#BFDBFE' }}>
+                  <Text style={{ fontSize: 11, color: '#1E40AF', lineHeight: 16 }}>
+                    ℹ️ <Text style={{ fontWeight: '700' }}>Next Step:</Text> Your application is waiting in the Department administrative queue. The Admin will allocate a field Legal Metrology Officer (LMO). You will receive an official notification with the assigned officer details once allocated.
+                  </Text>
                 </View>
               </View>
 
@@ -363,7 +384,7 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 style={styles.textInput}
                 value={location}
                 onChangeText={setLocation}
-                placeholder="e.g. Bowenpally Agricultural Wholesale Yard"
+                placeholder="e.g. Koyambedu Wholesale Market Complex, Chennai"
               />
 
               {/* CAMERA / PHOTO CAPTURE FEATURE */}
@@ -451,7 +472,7 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 activeOpacity={0.85}
               >
                 <Text style={styles.submitBtnText}>
-                  {submittingSingle ? 'Submitting Application...' : 'Submit Verification Request ›'}
+                  {submittingSingle ? 'Submitting Application...' : `Proceed to Pay ₹${dynamicFeeBreakdown.totalFee.toLocaleString('en-IN')} via Razorpay ›`}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -541,6 +562,14 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 ))}
               </View>
 
+              <Text style={styles.inputLabel}>Batch Instrument Nominal Capacity</Text>
+              <TextInput
+                style={styles.textInput}
+                value={bulkCapacity}
+                onChangeText={setBulkCapacity}
+                placeholder="e.g. 50 kg, 500 kg, or 60 Tonnes"
+              />
+
               <Text style={styles.inputLabel}>Total Quantity of Instruments in Batch</Text>
               <TextInput
                 style={styles.textInput}
@@ -585,7 +614,7 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 </View>
                 <Text style={styles.feeRuleDescription}>{bulkUnitFee.ruleReference}</Text>
                 <View style={styles.feeRow}>
-                  <Text style={styles.feeLabel}>Statutory Unit Fee</Text>
+                  <Text style={styles.feeLabel}>Statutory Unit Fee ({bulkCapacity})</Text>
                   <Text style={styles.feeVal}>₹ {bulkUnitFee.totalFee.toLocaleString('en-IN')} / unit</Text>
                 </View>
                 <View style={styles.feeRow}>
@@ -617,13 +646,34 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
                 activeOpacity={0.85}
               >
                 <Text style={styles.submitBtnText}>
-                  {submittingBulk ? 'Submitting Bulk Request...' : 'Submit Bulk Verification Request ›'}
+                  {submittingBulk ? 'Submitting Bulk Request...' : `Proceed to Pay ₹${bulkEstimatedTotal.toLocaleString('en-IN')} via Razorpay ›`}
                 </Text>
               </TouchableOpacity>
             </View>
           )
         )}
       </ScrollView>
+
+      {/* Razorpay / UPI Statutory Fee Payment Modal */}
+      <PaymentModal
+        visible={paymentModalVisible}
+        amount={pendingPaymentType === 'single' ? dynamicFeeBreakdown.totalFee : bulkEstimatedTotal}
+        purpose={
+          pendingPaymentType === 'single'
+            ? `Statutory Verification: ${model} (${capacity})`
+            : `Bulk Verification Challan: ${bulkTotalCount} Units (${bulkCategory}, ${bulkCapacity})`
+        }
+        applicantName={activeUser?.name || 'Authorized Instrument Owner'}
+        onPaymentSuccess={(txId) => {
+          setPaymentModalVisible(false);
+          if (pendingPaymentType === 'single') {
+            executeActualSingleSubmit(txId);
+          } else {
+            executeActualBulkSubmit(txId);
+          }
+        }}
+        onClose={() => setPaymentModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -844,56 +894,66 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   feeBreakdownBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    padding: 14,
-    marginTop: 18
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    marginTop: 18,
+    shadowColor: '#0A192F',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2
   },
   feeHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4
+    marginBottom: 6
   },
   feeTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: Colors.primaryNavy
+    fontSize: 13.5,
+    fontWeight: '900',
+    color: '#0A192F',
+    letterSpacing: 0.2
   },
   feeLawBadge: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
-    color: '#1E40AF',
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4
+    color: '#1D4ED8',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 6
   },
   feeRuleDescription: {
-    fontSize: 10,
+    fontSize: 10.5,
     color: '#64748B',
-    marginBottom: 10
+    marginBottom: 12,
+    fontStyle: 'italic'
   },
   feeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 3
+    marginVertical: 4
   },
   feeLabel: {
-    fontSize: 11,
-    color: Colors.textSecondary
+    fontSize: 11.5,
+    color: '#64748B',
+    fontWeight: '500'
   },
   feeVal: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.textPrimary
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A'
   },
   feeDivider: {
     height: 1,
-    backgroundColor: '#CBD5E1',
-    marginVertical: 8
+    backgroundColor: '#E2E8F0',
+    marginVertical: 10
   },
   feeRowTotal: {
     flexDirection: 'row',
@@ -901,31 +961,32 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   feeTotalLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.primaryNavy
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0A192F'
   },
   feeTotalVal: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 17,
+    fontWeight: '900',
     color: '#047857'
   },
   submitBtn: {
-    backgroundColor: Colors.primaryNavy,
-    borderRadius: 10,
-    paddingVertical: 14,
+    backgroundColor: '#0A192F',
+    borderRadius: 12,
+    paddingVertical: 15,
     alignItems: 'center',
-    marginTop: 18,
-    shadowColor: Colors.primaryNavy,
+    marginTop: 20,
+    shadowColor: '#0A192F',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4
   },
   submitBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800'
+    fontWeight: '900',
+    letterSpacing: 0.5
   },
   btnDisabled: {
     opacity: 0.6

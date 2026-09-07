@@ -240,51 +240,126 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({
             </TouchableOpacity>
           </View>
 
+          {/* 1. Field Legal Metrology Officers (LMO) */}
+          <View style={styles.subFleetHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={{ fontSize: 18 }}>⚖️</Text>
+              <Text style={styles.subFleetTitle}>1. Field Legal Metrology Officers (LMO)</Text>
+            </View>
+            <View style={styles.subFleetPill}>
+              <Text style={styles.subFleetPillText}>
+                {officers.filter((o: any) => o.role !== 'GATC').length} FIELD OFFICERS
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.subFleetDesc}>
+            Enforcement officers conducting on-site physical stamping, test loads, and seal verification across Chennai districts.
+          </Text>
+
           <View style={styles.officersListGrid}>
-            {officers.map((off: any) => {
-              const workload = off.currentWorkload || 0;
-              const capacity = off.maxCapacity || 20;
-              const pct = Math.min(100, Math.round((workload / capacity) * 100));
-              const isGatc = off.role === 'GATC';
+            {officers
+              .filter((off: any) => off.role !== 'GATC')
+              .map((off: any) => {
+                const workload = off.currentWorkload || 0;
+                const capacity = off.maxCapacity || 20;
+                const pct = Math.min(100, Math.round((workload / capacity) * 100));
+                const barColor = pct >= 80 ? '#EF4444' : pct >= 50 ? Colors.accentAmber : '#10B981';
 
-              const barColor = pct >= 80 ? '#EF4444' : pct >= 50 ? Colors.accentAmber : '#10B981';
-
-              return (
-                <View key={off.id} style={styles.officerFleetCard}>
-                  <View style={styles.officerFleetTop}>
-                    <View style={styles.officerRoleIconBox}>
-                      <Text style={{ fontSize: 18 }}>{isGatc ? '🔬' : '⚖️'}</Text>
-                    </View>
-                    <View style={{ flex: 1, marginLeft: 10 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Text style={styles.officerFleetName}>{off.name}</Text>
-                        <View style={[styles.roleBadge, isGatc && { backgroundColor: '#EDE9FE' }]}>
-                          <Text style={[styles.roleBadgeText, isGatc && { color: '#6D28D9' }]}>
-                            {off.id}
-                          </Text>
-                        </View>
+                return (
+                  <View key={off.id} style={styles.officerFleetCard}>
+                    <View style={styles.officerFleetTop}>
+                      <View style={styles.officerRoleIconBox}>
+                        <Text style={{ fontSize: 18 }}>⚖️</Text>
                       </View>
-                      <Text style={styles.officerFleetJurisdiction}>
-                        {off.designation} • {off.district || 'Hyderabad'}
-                      </Text>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={styles.officerFleetName}>{off.name}</Text>
+                          <View style={styles.roleBadge}>
+                            <Text style={styles.roleBadgeText}>{off.id}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.officerFleetJurisdiction}>
+                          {off.designation} • {off.district || 'Chennai'}
+                        </Text>
+                      </View>
                     </View>
-                  </View>
 
-                  {/* Workload Capacity Bar */}
-                  <View style={styles.workloadBarContainer}>
-                    <View style={styles.workloadLabelsRow}>
-                      <Text style={styles.workloadLabel}>Active Assignments:</Text>
-                      <Text style={[styles.workloadVal, { color: barColor }]}>
-                        {workload} / {capacity} units ({pct}%)
-                      </Text>
-                    </View>
-                    <View style={styles.progressBarTrack}>
-                      <View style={[styles.progressBarFill, { width: `${pct}%`, backgroundColor: barColor }]} />
+                    {/* Workload Capacity Bar */}
+                    <View style={styles.workloadBarContainer}>
+                      <View style={styles.workloadLabelsRow}>
+                        <Text style={styles.workloadLabel}>Active Assignments:</Text>
+                        <Text style={[styles.workloadVal, { color: barColor }]}>
+                          {workload} / {capacity} units ({pct}%)
+                        </Text>
+                      </View>
+                      <View style={styles.progressBarTrack}>
+                        <View style={[styles.progressBarFill, { width: `${pct}%`, backgroundColor: barColor }]} />
+                      </View>
                     </View>
                   </View>
-                </View>
-              );
-            })}
+                );
+              })}
+          </View>
+
+          {/* 2. State Central Testing Laboratory (GATC) */}
+          <View style={[styles.subFleetHeaderRow, { marginTop: 24 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={{ fontSize: 18 }}>🔬</Text>
+              <Text style={styles.subFleetTitle}>2. State Central Testing Laboratory (GATC)</Text>
+            </View>
+            <View style={[styles.subFleetPill, { backgroundColor: '#EDE9FE', borderColor: '#DDD6FE' }]}>
+              <Text style={[styles.subFleetPillText, { color: '#6D28D9' }]}>
+                CENTRAL METROLOGY LAB
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.subFleetDesc}>
+            Central testing authority with secondary mass comparators and digital Form VI Certificate endorsement clearance.
+          </Text>
+
+          <View style={styles.officersListGrid}>
+            {officers
+              .filter((off: any) => off.role === 'GATC')
+              .map((off: any) => {
+                const workload = off.currentWorkload || 0;
+                const capacity = off.maxCapacity || 50;
+                const pct = Math.min(100, Math.round((workload / capacity) * 100));
+                const barColor = pct >= 80 ? '#EF4444' : pct >= 50 ? Colors.accentAmber : '#10B981';
+
+                return (
+                  <View key={off.id} style={[styles.officerFleetCard, { borderColor: '#C4B5FD', backgroundColor: '#FAF5FF' }]}>
+                    <View style={styles.officerFleetTop}>
+                      <View style={[styles.officerRoleIconBox, { backgroundColor: '#EDE9FE' }]}>
+                        <Text style={{ fontSize: 18 }}>🔬</Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={styles.officerFleetName}>{off.name}</Text>
+                          <View style={[styles.roleBadge, { backgroundColor: '#7C3AED' }]}>
+                            <Text style={[styles.roleBadgeText, { color: '#FFFFFF' }]}>{off.id}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.officerFleetJurisdiction}>
+                          {off.designation} • State Calibration Directorate
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Workload Capacity Bar */}
+                    <View style={styles.workloadBarContainer}>
+                      <View style={styles.workloadLabelsRow}>
+                        <Text style={styles.workloadLabel}>Lab Clearance Queue:</Text>
+                        <Text style={[styles.workloadVal, { color: '#6D28D9' }]}>
+                          {workload} / {capacity} batches ({pct}%)
+                        </Text>
+                      </View>
+                      <View style={styles.progressBarTrack}>
+                        <View style={[styles.progressBarFill, { width: `${pct}%`, backgroundColor: '#7C3AED' }]} />
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
           </View>
         </View>
       </ScrollView>
@@ -498,6 +573,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  subFleetHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  subFleetTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  subFleetPill: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  subFleetPillText: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    letterSpacing: 0.4,
+  },
+  subFleetDesc: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 10,
   },
   refreshFleetBtn: {
     paddingHorizontal: 10,

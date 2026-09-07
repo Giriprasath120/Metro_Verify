@@ -30,9 +30,12 @@ const app = express();
 // STRICT DEFAULT: Port 4000 (never 5000)
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.raw({ type: 'audio/*', limit: '50mb' }));
 
 // Swagger UI at /api-docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -43,6 +46,11 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 app.get('/swagger.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
+});
+
+// Health check endpoint
+app.get(['/api/health', '/health'], (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
 // API health check & discovery route
@@ -106,9 +114,16 @@ app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
-// Public verification short-link redirect for QR codes
-app.get(['/verify', '/verify/:id'], (req, res) => {
-  const id = req.params.id || (req.query.id as string) || (req.query.certNo as string) || '';
+// Public verification short-link and API redirect for QR codes
+app.get([
+  '/verify',
+  '/verify/:id',
+  '/api/public/verify',
+  '/api/public/verify/:token',
+  '/public/verify',
+  '/public/verify/:token'
+], (req, res) => {
+  const id = req.params.token || req.params.id || (req.query.id as string) || (req.query.token as string) || (req.query.certNo as string) || '';
   res.redirect(`/api/certificates/verify?id=${encodeURIComponent(id)}`);
 });
 

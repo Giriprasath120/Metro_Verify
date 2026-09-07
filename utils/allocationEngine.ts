@@ -11,6 +11,7 @@ export interface AllocationRequest {
   state: string;
   district: string;
   requestedDate: string; // YYYY-MM-DD
+  timeSlot?: string; // e.g., '10:00 AM - 01:00 PM'
   lat?: number;
   lng?: number;
   isBulk?: boolean;
@@ -18,7 +19,7 @@ export interface AllocationRequest {
 }
 
 export interface OfficerScoreResult {
-  officer: Officer;
+  officer: Officer & { slotBookings?: number; maxCapacity?: number; rating?: number };
   totalScore: number;
   eligible: boolean;
   distanceKm: number;
@@ -79,6 +80,8 @@ const districtCoordinates: Record<string, { lat: number; lng: number }> = {
   'Hyderabad North': { lat: 17.4485, lng: 78.487 },
   'Hyderabad South': { lat: 17.3616, lng: 78.4747 },
   'Secunderabad': { lat: 17.4399, lng: 78.4983 },
+  'Charminar Zone': { lat: 17.3616, lng: 78.4747 },
+  'Cyberabad West': { lat: 17.4399, lng: 78.38 },
   'Pune Industrial': { lat: 18.6279, lng: 73.8131 },
   'New Delhi Central': { lat: 28.6433, lng: 77.1895 },
   'Lucknow Industrial': { lat: 26.8467, lng: 80.9462 },
@@ -90,95 +93,121 @@ const districtCoordinates: Record<string, { lat: number; lng: number }> = {
   'Jaipur City': { lat: 26.9124, lng: 75.7873 }
 };
 
+const HYDERABAD_METRO_ZONES = new Set([
+  'hyderabad',
+  'hyderabad north',
+  'hyderabad south',
+  'secunderabad',
+  'charminar zone',
+  'charminar',
+  'cyberabad west',
+  'cyberabad',
+  'cyberabad east'
+]);
+
 /**
  * Deterministic scoring function: scoreOfficer(request, officer)
- * - Jurisdiction match: +40 pts if district/state matches (hard filter for GATCs, soft preference for LMOs)
- * - Distance: up to +30 pts, decreasing linearly as distance (km) increases
- * - Current workload: up to +20 pts, decreasing as pending jobs increase
- * - Availability: +10 pts if officer has open slot on requested date, 0 otherwise
+ * - Workload: Dominant load balancing driver (50 base, -10 per pending job)
+ * - Time slot capacity: Enforces max 2 bookings/slot; applies -80 penalty if exceeded
+ * - Jurisdiction: Respects metropolitan sister zones so work fluctuates across all officers
  */
-export function scoreOfficer(request: AllocationRequest, officer: Officer): OfficerScoreResult {
+export function scoreOfficer(request: AllocationRequest, officer: any): OfficerScoreResult {
   const reqDistrict = (request.district || '').trim().toLowerCase();
   const offDistrict = (officer.district || '').trim().toLowerCase();
   const reqState = (request.state || '').trim().toLowerCase();
   const offState = (officer.state || '').trim().toLowerCase();
 
-  // 1. Jurisdiction Match (+40 points)
   let jurisdictionScore = 0;
   let isEligible = true;
 
   const isExactDistrict = reqDistrict === offDistrict;
   const isExactState = reqState === offState;
+  const isMetroBoth = HYDERABAD_METRO_ZONES.has(reqDistrict) && HYDERABAD_METRO_ZONES.has(offDistrict);
 
   if (officer.role === 'GATC') {
-    // Hard filter for GATC: Must match state, and preferably district
     if (!isExactState) {
       isEligible = false;
       jurisdictionScore = 0;
     } else if (isExactDistrict) {
-      jurisdictionScore = 40;
+      jurisdictionScore = 35;
     } else {
-      jurisdictionScore = 20; // Regional GATC lab coverage within state
+      jurisdictionScore = 20;
     }
   } else {
-    // LMO: Soft preference
     if (isExactDistrict) {
-      jurisdictionScore = 40;
+      jurisdictionScore = 35;
+    } else if (isMetroBoth) {
+      jurisdictionScore = 30; // Sister zone within Greater Hyderabad metropolitan limit
     } else if (isExactState) {
-      jurisdictionScore = 20; // Adjacent sub-division inside state
+      jurisdictionScore = 20;
     } else {
-      jurisdictionScore = 5; // Inter-state mutual aid
+      jurisdictionScore = 5;
     }
   }
 
-  // 2. Distance Calculation (up to +30 points)
   const reqLat = request.lat ?? districtCoordinates[request.district]?.lat ?? 17.4485;
   const reqLng = request.lng ?? districtCoordinates[request.district]?.lng ?? 78.487;
   const distKm = calculateDistanceKm(reqLat, reqLng, officer.lat, officer.lng);
 
-  // Decreasing linearly: 30 at 0km, 0 at 40km or more
-  const distanceScore = Math.max(0, Math.round(30 - distKm * 0.75));
+  const distanceScore = Math.max(0, Math.round(20 - distKm * 0.5));
 
-  // 3. Current Workload (up to +20 points)
-  // Max 20 points, decreasing by 2.5 per pending job
-  const workloadScore = Math.max(0, Math.round(20 - officer.pendingJobs * 2.5));
+  // Dynamic Workload Balancing: 50 base points, -10 per active pending job
+  const pending = Number(officer.pendingJobs ?? officer.currentWorkload ?? 0);
+  const maxCap = Number(officer.maxCapacity || 15);
+  let workloadScore = Math.max(-50, Math.round(50 - pending * 10));
 
-  // 4. Availability (+10 points)
-  const isAvailable = officer.availableDates.includes(request.requestedDate);
-  const availabilityScore = isAvailable ? 10 : 0;
+  if (pending >= maxCap) {
+    workloadScore = -80; // Saturated capacity penalty
+  }
+
+  // Time Slot Capacity & Working Hours Enforcement
+  const isDateOpen = !officer.availableDates || officer.availableDates.length === 0 || officer.availableDates.includes(request.requestedDate);
+  const slotBookings = Number(officer.slotBookings ?? 0);
+  let availabilityScore = 0;
+
+  if (slotBookings >= 2) {
+    // Time slot capacity exceeded (> 2 inspections booked in this slot)
+    availabilityScore = -80;
+  } else if (slotBookings === 1) {
+    availabilityScore = 10;
+  } else if (isDateOpen) {
+    availabilityScore = 25; // Working time slot completely free
+  } else {
+    availabilityScore = 0;
+  }
 
   const totalScore = isEligible ? jurisdictionScore + distanceScore + workloadScore + availabilityScore : 0;
 
-  // Build human-explainable rationale
   const reasons: string[] = [];
   if (isExactDistrict) {
-    reasons.push('Same district jurisdiction (+40)');
+    reasons.push('Same sub-district jurisdiction (+35)');
+  } else if (isMetroBoth) {
+    reasons.push('Metropolitan sister-zone coverage (+30)');
   } else if (isExactState) {
     reasons.push('Same state jurisdiction (+20)');
   } else {
-    reasons.push('Cross-jurisdiction');
+    reasons.push('Cross-jurisdiction (+5)');
   }
 
-  if (distKm <= 8) {
-    reasons.push(`Closest match, ${distKm}km away (+${distanceScore})`);
+  reasons.push(`${distKm}km distance (+${distanceScore})`);
+  reasons.push(`${pending} pending cases (${workloadScore >= 0 ? '+' : ''}${workloadScore} workload)`);
+
+  if (slotBookings >= 2) {
+    reasons.push('⚠️ Time slot exceeded (max 2/slot, -80)');
+  } else if (slotBookings === 1) {
+    reasons.push('Time slot partially booked (1 case, +10)');
+  } else if (isDateOpen) {
+    reasons.push(`Working time slot open on ${request.requestedDate} (+25)`);
   } else {
-    reasons.push(`${distKm}km travel distance (+${distanceScore})`);
+    reasons.push(`Off-schedule on ${request.requestedDate} (+0)`);
   }
 
-  reasons.push(`${officer.pendingJobs} active pending jobs (+${workloadScore})`);
-
-  if (isAvailable) {
-    reasons.push(`Slot open on ${request.requestedDate} (+10)`);
-  } else {
-    reasons.push(`No direct slot on ${request.requestedDate} (+0)`);
-  }
-
-  const explanation = reasons.join(', ');
+  const explanation = reasons.join(' • ');
 
   return {
     officer,
     totalScore,
-    eligible: isEligible,
+    eligible: isEligible && totalScore > -40,
     distanceKm: distKm,
     breakdown: {
       jurisdictionScore,
@@ -197,7 +226,16 @@ export function allocateSingleSlot(request: AllocationRequest, officers: Officer
   const scored = officers
     .map(officer => scoreOfficer(request, officer))
     .filter(res => res.eligible)
-    .sort((a, b) => b.totalScore - a.totalScore);
+    .sort((a, b) => {
+      // Primary: totalScore descending
+      const diff = b.totalScore - a.totalScore;
+      if (Math.abs(diff) > 3) return diff;
+      // Secondary: least pending cases
+      const pendingDiff = (a.officer.pendingJobs ?? 0) - (b.officer.pendingJobs ?? 0);
+      if (pendingDiff !== 0) return pendingDiff;
+      // Tertiary: least slot bookings
+      return ((a.officer as any).slotBookings ?? 0) - ((b.officer as any).slotBookings ?? 0);
+    });
 
   const suggestedOfficer = scored[0] || scoreOfficer(request, officers[0]);
 

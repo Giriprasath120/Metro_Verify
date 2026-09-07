@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle, G, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { Colors } from '../theme/colors';
 
 interface ComplianceGaugeProps {
@@ -11,7 +11,7 @@ interface ComplianceGaugeProps {
 
 export const ComplianceGauge: React.FC<ComplianceGaugeProps> = ({
   score = 92,
-  size = 110,
+  size = 120,
   showGrade = true
 }) => {
   const strokeWidth = 10;
@@ -21,38 +21,48 @@ export const ComplianceGauge: React.FC<ComplianceGaugeProps> = ({
   const strokeDashoffset = circumference - (circumference * clampedScore) / 100;
 
   // Determine health color band
-  let strokeColor = '#10B981'; // Green
+  let strokeColor = '#059669'; // Emerald
   let grade = 'Tier A';
-  let ratingText = 'Excellent';
+  let ratingText = 'Statutory Compliant';
   let badgeBg = '#ECFDF5';
   let badgeText = '#047857';
+  let badgeBorder = '#A7F3D0';
 
   if (clampedScore < 75) {
-    strokeColor = '#EF4444'; // Red
+    strokeColor = '#DC2626'; // Ruby
     grade = 'Tier C';
-    ratingText = 'High Risk';
+    ratingText = 'High Risk Audit';
     badgeBg = '#FEF2F2';
-    badgeText = '#B91C1C';
+    badgeText = '#991B1B';
+    badgeBorder = '#FECACA';
   } else if (clampedScore < 90) {
-    strokeColor = '#F59E0B'; // Amber
+    strokeColor = '#D97706'; // Amber
     grade = 'Tier B';
-    ratingText = 'Standard';
+    ratingText = 'Renewal Due Soon';
     badgeBg = '#FFFBEB';
-    badgeText = '#B45309';
+    badgeText = '#92400E';
+    badgeBorder = '#FDE68A';
   }
 
   return (
     <View style={styles.container}>
       <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
         <Svg width={size} height={size}>
+          <Defs>
+            <LinearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor={strokeColor} stopOpacity="1" />
+              <Stop offset="100%" stopColor={strokeColor === '#059669' ? '#10B981' : strokeColor === '#D97706' ? '#F59E0B' : '#EF4444'} stopOpacity="0.8" />
+            </LinearGradient>
+          </Defs>
           <G rotation="-90" origin={`${size / 2}, ${size / 2}`}>
-            {/* Background Ring */}
+            {/* Background Track */}
             <Circle
               cx={size / 2}
               cy={size / 2}
               r={radius}
               stroke="#E2E8F0"
               strokeWidth={strokeWidth}
+              strokeDasharray="4, 4"
               fill="none"
             />
             {/* Active Gauge Progress */}
@@ -60,7 +70,7 @@ export const ComplianceGauge: React.FC<ComplianceGaugeProps> = ({
               cx={size / 2}
               cy={size / 2}
               r={radius}
-              stroke={strokeColor}
+              stroke="url(#gaugeGrad)"
               strokeWidth={strokeWidth}
               strokeDasharray={`${circumference} ${circumference}`}
               strokeDashoffset={strokeDashoffset}
@@ -78,7 +88,8 @@ export const ComplianceGauge: React.FC<ComplianceGaugeProps> = ({
 
       {showGrade && (
         <View style={styles.gradeContainer}>
-          <View style={[styles.gradeBadge, { backgroundColor: badgeBg }]}>
+          <View style={[styles.gradeBadge, { backgroundColor: badgeBg, borderColor: badgeBorder }]}>
+            <View style={[styles.gradeDot, { backgroundColor: strokeColor }]} />
             <Text style={[styles.gradeText, { color: badgeText }]}>{grade}</Text>
           </View>
           <Text style={styles.ratingText}>{ratingText}</Text>
@@ -92,7 +103,7 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 6
+    paddingVertical: 4
   },
   centerTextContainer: {
     position: 'absolute',
@@ -100,31 +111,45 @@ const styles = StyleSheet.create({
     justifyContent: 'center'
   },
   scoreText: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Colors.textPrimary
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0A192F',
+    letterSpacing: -0.5
   },
   scaleText: {
-    fontSize: 10,
-    color: Colors.textMuted,
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#94A3B8',
     marginTop: -2
   },
   gradeContainer: {
     alignItems: 'center',
-    marginTop: 6
+    marginTop: 8
   },
   gradeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 5
+  },
+  gradeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3
   },
   gradeText: {
     fontSize: 11,
-    fontWeight: '700'
+    fontWeight: '800',
+    letterSpacing: 0.3
   },
   ratingText: {
     fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 2
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 3
   }
 });
+

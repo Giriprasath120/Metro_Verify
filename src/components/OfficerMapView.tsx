@@ -38,15 +38,15 @@ interface OfficerMapViewProps {
 
 export const OfficerMapView: React.FC<OfficerMapViewProps> = ({
   assignments,
-  officerDistrict = 'Hyderabad',
+  officerDistrict = 'Chennai',
   onSelectInspection,
   onStartVerification,
 }) => {
   // Coordinates mapping for districts and locations
   const sampleCoordinates: Record<string, { lat: number; lng: number; label: string }> = {
-    'Bowenpally': { lat: 17.4700, lng: 78.4800, label: 'Bowenpally Agricultural Wholesale Yard' },
+    'Koyambedu': { lat: 17.4700, lng: 78.4800, label: 'Koyambedu Wholesale Market Complex, Chennai' },
     'Begumpet': { lat: 17.4448, lng: 78.4682, label: 'Begumpet Industrial Estate' },
-    'Secunderabad': { lat: 17.4399, lng: 78.4983, label: 'General Market Secunderabad' },
+    'Guindy': { lat: 17.4399, lng: 78.4983, label: 'General Market Guindy' },
     'Sanathnagar': { lat: 17.4566, lng: 78.4411, label: 'Sanathnagar Logistics Hub' },
     'Charminar': { lat: 17.3616, lng: 78.4747, label: 'Laad Bazaar Jewellers Precinct' },
     'Cyberabad': { lat: 17.4435, lng: 78.3772, label: 'Madhapur Tech Zone' },
@@ -59,7 +59,7 @@ export const OfficerMapView: React.FC<OfficerMapViewProps> = ({
     const owner = asg.owner || app.owner || {};
 
     const distKey = Object.keys(sampleCoordinates)[index % Object.keys(sampleCoordinates).length];
-    const defaultCoords = sampleCoordinates[distKey] || { lat: 17.4485, lng: 78.487, label: 'Hyderabad' };
+    const defaultCoords = sampleCoordinates[distKey] || { lat: 17.4485, lng: 78.487, label: 'Chennai' };
 
     return {
       id: asg.id || app.id,
@@ -69,7 +69,7 @@ export const OfficerMapView: React.FC<OfficerMapViewProps> = ({
       category: inst.category || asg.category || 'Non-Automatic Weighing Instrument',
       ownerName: owner.name || 'Owner',
       businessName: owner.businessName || `${owner.name || 'Trader'} Enterprises`,
-      address: owner.address || inst.location || `${distKey} Commercial Cluster, Hyderabad`,
+      address: owner.address || inst.location || `${distKey} Commercial Cluster, Chennai`,
       district: inst.district || owner.district || officerDistrict,
       phone: owner.phone || asg.ownerPhone || '+91 98480 22338',
       scheduledDate: asg.scheduledDate || app.preferredDate || '2026-09-18',

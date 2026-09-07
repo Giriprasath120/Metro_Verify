@@ -349,7 +349,7 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
                             errorMargin: insp.errorMargin || '+5 g',
                             toleranceLimit: insp.toleranceLimit || '±10 g',
                             status: 'CERTIFIED_BY_LMO_PASSED_TO_GATC',
-                            gatcTargetLab: 'Telangana State Legal Metrology Central Laboratory (GATC-01)',
+                            gatcTargetLab: 'Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)',
                             remarks: insp.remarks,
                           });
                           setInspectingInspId(insp.id);
@@ -539,7 +539,7 @@ export const OfficerDashboardScreen: React.FC<OfficerDashboardScreenProps> = ({
               <View style={styles.collaboratorsBox}>
                 <Text style={styles.collaboratorsTitle}>👥 Active Authenticated Officer:</Text>
                 <Text style={styles.collaboratorsList}>
-                  ★ {currentOfficer.name} ({currentOfficer.badgeNumber || currentOfficer.id}) • {currentOfficer.jurisdiction || currentOfficer.district || 'Hyderabad Zone'}
+                  ★ {currentOfficer.name} ({currentOfficer.badgeNumber || currentOfficer.id}) • {currentOfficer.jurisdiction || currentOfficer.district || 'Chennai Zone'}
                 </Text>
                 <Text style={styles.gatcCollabNote}>
                   🔬 Next Stage: Verification passes directly to GATC Central Lab for Certificate Issuance
