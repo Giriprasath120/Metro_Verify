@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -14,7 +14,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { Certificate } from '../../data/mockData';
 import { Colors } from '../theme/colors';
 import { StatusBadge } from './StatusBadge';
-import { API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS, PUBLIC_VERIFY_URL } from '../config/api';
 
 interface CertificateModalProps {
   visible: boolean;
@@ -28,6 +28,22 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   onClose
 }) => {
   const [downloading, setDownloading] = useState(false);
+  const [liveTunnelUrl, setLiveTunnelUrl] = useState(PUBLIC_VERIFY_URL);
+  const [qrMode, setQrMode] = useState<'text' | 'url'>('text');
+
+  useEffect(() => {
+    // Dynamically query server for active tunnel URL
+    fetch(API_ENDPOINTS.publicTunnel)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.tunnelUrl) {
+          setLiveTunnelUrl(data.tunnelUrl);
+        }
+      })
+      .catch(() => {
+        // Keeps default PUBLIC_VERIFY_URL
+      });
+  }, []);
 
   if (!certificate) return null;
 
@@ -56,28 +72,30 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
   const gatcLab = (certificate as any).gatcLabName || 'Telangana State Legal Metrology Central Laboratory (GATC-01)';
 
-  // Dynamic host determination: use browser location if on LAN/remote, fallback to detected IP 10.20.222.175
-  const activeHostname = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
-    ? window.location.hostname
-    : '10.20.222.175';
-
-  // Use certificate.id (e.g. CERT-653059) and query param /verify?id=... to prevent slash %2F routing failures
+  // Public verification endpoint URL
   const certIdParam = certificate.id || certNumber;
-  const verifyUrl = `http://${activeHostname}:4000/api/certificates/verify?id=${encodeURIComponent(certIdParam)}`;
+  const verifyUrl = `${liveTunnelUrl}/api/certificates/verify?id=${encodeURIComponent(certIdParam)}`;
 
-  const qrPayload = `LEGAL METROLOGY DIGITAL VERIFICATION (FORM VI)
+  // 1. Comprehensive Digital Certificate Record (scannable offline by ANY phone without internet or web server)
+  const fullCertificatePayload = `GOVERNMENT OF INDIA • LEGAL METROLOGY
+FORM VI DIGITAL VERIFICATION CERTIFICATE
 ========================================
 STATUS: ${dynStatus.text}
-CERT NO: ${certNumber}
-INSTRUMENT: ${instId}
+CERTIFICATE NO: ${certNumber}
+INSTRUMENT UID: ${instId}
 ESTABLISHMENT: Sri Balaji Mandi & Agro Traders
-LMO OFFICER: ${officer}
-GATC LAB: ${gatcLab}
+OFFICER (LMO): ${officer}
+GATC TEST LAB: ${gatcLab}
 STANDARD: ${standard}
+FEE PAID: ${fee} (Statutory Challan Verified)
 VALIDITY: ${issueDate} TO ${validUntil}
-DUAL ENDORSEMENT: LMO Field Verified + GATC Lab Endorsed (Rule 14)
+DUAL ENDORSEMENT: LMO Certified + GATC Endorsed
+SECURITY HASH: ${secHash}
 ========================================
-ONLINE VERIFY: ${verifyUrl}`;
+NATIONAL REGISTER: ${verifyUrl}`;
+
+  // 2. Active payload based on user selection: 'text' = guaranteed offline view; 'url' = web browser view
+  const activeQrPayload = qrMode === 'url' ? verifyUrl : fullCertificatePayload;
 
   const handleDownload = async () => {
     setDownloading(true);
@@ -178,18 +196,40 @@ ONLINE VERIFY: ${verifyUrl}`;
                 <Text style={styles.certNumberText}>{certNumber}</Text>
               </View>
 
-              {/* Official Single QR Code Container */}
+              {/* QR Mode Selector: URL vs Complete Offline Certificate Record */}
+              <View style={styles.qrModeToggleRow}>
+                <TouchableOpacity
+                  style={[styles.qrModeBtn, qrMode === 'url' && styles.qrModeBtnActive]}
+                  onPress={() => setQrMode('url')}
+                >
+                  <Text style={[styles.qrModeBtnText, qrMode === 'url' && styles.qrModeBtnTextActive]}>
+                    🌐 Web Link QR
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.qrModeBtn, qrMode === 'text' && styles.qrModeBtnActive]}
+                  onPress={() => setQrMode('text')}
+                >
+                  <Text style={[styles.qrModeBtnText, qrMode === 'text' && styles.qrModeBtnTextActive]}>
+                    📜 Universal Certificate QR (100% Offline)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Official QR Code Container */}
               <View style={styles.qrSection}>
                 <View style={styles.qrBox}>
                   <QRCode
-                    value={qrPayload}
+                    value={activeQrPayload}
                     size={175}
                     color="#0B2545"
                     backgroundColor="#FFFFFF"
                   />
                 </View>
                 <Text style={styles.qrCaption}>
-                  ✓ Official Government Verification QR • Point any phone camera or QR scanner to view instant verification status &amp; digital certificate details
+                  {qrMode === 'text'
+                    ? '✓ 100% Reliable Offline QR • Any smartphone camera or QR reader instantly displays the full Form VI Digital Certificate with legal verification details without relying on external web tunnels.'
+                    : '✓ Direct Web Verification QR • Point phone camera to open the live Government Certificate web portal.'}
                 </Text>
                 
                 {/* Direct Link Button */}
@@ -203,13 +243,21 @@ ONLINE VERIFY: ${verifyUrl}`;
 
                 {/* Live Scanner Output Preview Box */}
                 <View style={styles.scannedPreviewBox}>
-                  <Text style={styles.scannedPreviewTitle}>📱 Live Scanner Output:</Text>
-                  <TouchableOpacity onPress={() => Linking.openURL(verifyUrl)}>
-                    <Text style={styles.verifyLinkText}>{verifyUrl}</Text>
-                  </TouchableOpacity>
-                  <Text style={[styles.scannedStatusApproved, { color: dynStatus.color }]}>
-                    ● STATUS: {dynStatus.text} (FORM VI)
-                  </Text>
+                  <Text style={styles.scannedPreviewTitle}>📱 Phone Camera Scanner Output:</Text>
+                  {qrMode === 'url' ? (
+                    <>
+                      <TouchableOpacity onPress={() => Linking.openURL(verifyUrl)}>
+                        <Text style={styles.verifyLinkText}>{verifyUrl}</Text>
+                      </TouchableOpacity>
+                      <Text style={[styles.scannedStatusApproved, { color: dynStatus.color }]}>
+                        ● STATUS: {dynStatus.text} (FORM VI)
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={[styles.scannedPreviewText, { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 10 }]}>
+                      {activeQrPayload}
+                    </Text>
+                  )}
                   <Text style={styles.scannedPreviewText}>• Certificate: {certNumber}</Text>
                   <Text style={styles.scannedPreviewText}>• Instrument ID: {instId}</Text>
                   <Text style={styles.scannedPreviewText}>• Valid Until: {validUntil}</Text>

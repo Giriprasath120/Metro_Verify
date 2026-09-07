@@ -28,9 +28,29 @@ import { ComplianceAlertsScreen } from '../screens/admin/ComplianceAlertsScreen'
 import { BulkBatchMonitorScreen } from '../screens/admin/BulkBatchMonitorScreen';
 
 import { Colors } from '../theme/colors';
+import { Platform, TouchableOpacity } from 'react-native';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+// Deep linking configuration for multi-page web browser URL routing
+const linking = {
+  prefixes: ['/', 'http://localhost:8081', 'https://metro-verify.gov.in'],
+  config: {
+    screens: {
+      Dashboard: 'dashboard',
+      Instruments: 'instruments',
+      NewRequest: 'new-request',
+      Certificates: 'certificates',
+      AIAssistant: 'ai-chat',
+      Schedule: 'officer/schedule',
+      OfflineQueue: 'officer/offline-queue',
+      AdminDashboard: 'admin/overview',
+      SmartAllocation: 'admin/smart-allocation',
+      ComplianceAlerts: 'admin/alerts',
+    },
+  },
+};
 
 // 1. Owner Stack Navigator (Allows drilling down into Passport from Dashboard)
 const OwnerStack = createNativeStackNavigator();
@@ -61,6 +81,73 @@ function InstrumentsStackNavigator({ onSwitchRole }: { onSwitchRole: () => void 
     </InstrumentsStack.Navigator>
   );
 }
+
+// Web Top Government Navigation Bar for desktop multi-page portal feel
+const WebPortalNavBar: React.FC<{
+  currentRole: string;
+  activeTab: string;
+  onNavigate: (tabName: string) => void;
+  onSwitchRole: () => void;
+}> = ({ currentRole, activeTab, onNavigate, onSwitchRole }) => {
+  if (Platform.OS !== 'web') return null;
+
+  const ownerTabs = [
+    { key: 'Dashboard', label: 'Dashboard', icon: '🏪' },
+    { key: 'Instruments', label: 'My Instruments', icon: '⚖️' },
+    { key: 'NewRequest', label: 'New Verification Request', icon: '➕' },
+    { key: 'Certificates', label: 'Digital Certificates', icon: '📜' },
+    { key: 'AIAssistant', label: 'AI Assistant', icon: '✨' },
+  ];
+
+  const officerTabs = [
+    { key: 'Schedule', label: 'Inspection Schedule', icon: '📋' },
+    { key: 'OfflineQueue', label: 'Offline Sync Queue', icon: '📡' },
+  ];
+
+  const adminTabs = [
+    { key: 'AdminDashboard', label: 'State Metrology Overview', icon: '📊' },
+    { key: 'SmartAllocation', label: 'Smart Allocation Engine', icon: '🧠' },
+    { key: 'ComplianceAlerts', label: 'Statutory Risk Alerts', icon: '⚠️' },
+  ];
+
+  const tabs = currentRole === 'owner' ? ownerTabs : currentRole === 'officer' ? officerTabs : adminTabs;
+
+  return (
+    <View style={styles.webNavBar}>
+      <View style={styles.webNavContainer}>
+        <View style={styles.webNavBrand}>
+          <Text style={styles.webNavEmblem}>🏛️</Text>
+          <View>
+            <Text style={styles.webNavTitle}>METRO VERIFY PORTAL</Text>
+            <Text style={styles.webNavSub}>Government of Telangana • Legal Metrology Directorate</Text>
+          </View>
+        </View>
+
+        <View style={styles.webNavTabs}>
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[styles.webTabBtn, isActive && styles.webTabBtnActive]}
+                onPress={() => onNavigate(tab.key)}
+              >
+                <Text style={styles.webTabIcon}>{tab.icon}</Text>
+                <Text style={[styles.webTabText, isActive && styles.webTabTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <TouchableOpacity style={styles.webLogoutBtn} onPress={onSwitchRole}>
+          <Text style={styles.webLogoutText}>Switch Role / Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 // 3. Owner Bottom Tab Navigator
 function OwnerTabNavigator({ onSwitchRole }: { onSwitchRole: () => void }) {
@@ -127,7 +214,7 @@ function OwnerTabNavigator({ onSwitchRole }: { onSwitchRole: () => void }) {
   );
 }
 
-// 3. Officer Schedule Stack Navigator (Allows opening Field Verification from Schedule)
+// 4. Officer Schedule Stack Navigator (Allows opening Field Verification from Schedule)
 const OfficerStack = createNativeStackNavigator();
 function OfficerScheduleStackNavigator({
   onSwitchRole,
@@ -162,7 +249,7 @@ function OfficerScheduleStackNavigator({
   );
 }
 
-// 4. Officer Bottom Tab Navigator (Strictly: Schedule & Offline Queue)
+// 5. Officer Bottom Tab Navigator (Strictly: Schedule & Offline Queue)
 function OfficerTabNavigator({
   onSwitchRole,
   isOfflineMode,
@@ -212,7 +299,7 @@ function OfficerTabNavigator({
   );
 }
 
-// 4. Admin Bottom Tab Navigator
+// 6. Admin Bottom Tab Navigator
 function AdminTabNavigator({ onSwitchRole }: { onSwitchRole: () => void }) {
   return (
     <Tab.Navigator
@@ -285,7 +372,7 @@ export const RootNavigator: React.FC = () => {
   };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       {currentRole === 'none' && (
         <AuthScreen onLoginSuccess={handleLoginSuccess} />
       )}
@@ -322,5 +409,81 @@ const styles = StyleSheet.create({
   tabBarLabel: {
     fontSize: 10,
     fontWeight: '700'
-  }
+  },
+  webNavBar: {
+    backgroundColor: '#07162C',
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.accentAmber,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+  },
+  webNavContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    maxWidth: 1400,
+    marginHorizontal: 'auto',
+    width: '100%',
+  },
+  webNavBrand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  webNavEmblem: {
+    fontSize: 28,
+  },
+  webNavTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+  webNavSub: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  webNavTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  webTabBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  webTabBtnActive: {
+    backgroundColor: Colors.accentAmber,
+  },
+  webTabIcon: {
+    fontSize: 14,
+  },
+  webTabText: {
+    color: '#CBD5E1',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  webTabTextActive: {
+    color: '#07162C',
+    fontWeight: '800',
+  },
+  webLogoutBtn: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: '#EF4444',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  webLogoutText: {
+    color: '#F87171',
+    fontSize: 11,
+    fontWeight: '700',
+  },
 });

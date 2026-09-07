@@ -1,7 +1,25 @@
-// Centralized API configuration for Metro Verify
-export const API_BASE_URL = 'http://localhost:4000';
+const getBaseUrl = (): string => {
+  if (typeof window !== 'undefined' && window.location) {
+    const host = window.location.hostname;
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      if (host.includes('trycloudflare.com')) {
+        return window.location.origin;
+      }
+      return `${window.location.protocol}//${host}:4000`;
+    }
+  }
+  return 'http://localhost:4000';
+};
+
+export const API_BASE_URL = getBaseUrl();
+
+// Live public HTTPS URL for phone QR code scanning (bypasses local network/firewall barriers)
+export const PUBLIC_VERIFY_URL = 'https://decreased-command-lives-deferred.trycloudflare.com';
 
 export const API_ENDPOINTS = {
+  // Public verification URL discovery
+  publicTunnel: `${API_BASE_URL}/api/certificates/public-tunnel-url`,
+
   // Auth
   login: `${API_BASE_URL}/api/auth/login`,
   register: `${API_BASE_URL}/api/auth/register`,

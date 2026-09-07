@@ -6,6 +6,18 @@ import { mockCertificates, mockInstruments, mockOwners } from '../data/mockData'
 
 const router = Router();
 
+// Current active tunnel URL - updated dynamically when tunnel changes
+let activeTunnelUrl = 'https://decreased-command-lives-deferred.trycloudflare.com';
+
+// GET /certificates/public-tunnel-url
+router.get('/public-tunnel-url', (req: Request, res: Response) => {
+  return res.json({
+    success: true,
+    tunnelUrl: activeTunnelUrl,
+    verifyEndpoint: `${activeTunnelUrl}/api/certificates/verify`
+  });
+});
+
 // GET /certificates - List all certificates from MySQL with mock fallback
 router.get('/', async (req: Request, res: Response) => {
   try {

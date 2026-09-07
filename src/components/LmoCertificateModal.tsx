@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { Colors } from '../theme/colors';
+import { API_ENDPOINTS, PUBLIC_VERIFY_URL } from '../config/api';
 
 export interface LmoCertificateData {
   id?: string;
@@ -51,34 +52,48 @@ export const LmoCertificateModal: React.FC<LmoCertificateModalProps> = ({
   onEndorseByGatc,
   isGatcView = false,
 }) => {
+  const [liveTunnelUrl, setLiveTunnelUrl] = useState(PUBLIC_VERIFY_URL);
+  const [qrMode, setQrMode] = useState<'text' | 'url'>('text');
+
+  useEffect(() => {
+    fetch(API_ENDPOINTS.publicTunnel)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.tunnelUrl) {
+          setLiveTunnelUrl(data.tunnelUrl);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   if (!certificate) return null;
 
   const certNumber = certificate.certificateNumber || 'LMO-CERT-TS-2026-0000';
   const sealNumber = certificate.sealNumber || 'TS-SEAL-000000';
   const issueDate = certificate.issueDate || new Date().toISOString().split('T')[0];
 
-  const activeHostname = (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
-    ? window.location.hostname
-    : '10.20.222.175';
+  // Public verification endpoint URL accessible by any smartphone scanner globally
+  const lmoVerifyUrl = `${liveTunnelUrl}/api/certificates/verify?id=${encodeURIComponent(certNumber)}`;
 
-  const lmoVerifyUrl = `http://${activeHostname}:4000/api/certificates/verify?id=${encodeURIComponent(certNumber)}`;
-
-  const lmoQrPayload = `LEGAL METROLOGY • LMO FIELD CERTIFICATE
+  // Universal offline LMO record
+  const fullLmoCertificatePayload = `GOVERNMENT OF TELANGANA • LEGAL METROLOGY
+LMO FIELD VERIFICATION CERTIFICATE
 ========================================
 STATUS: CERTIFIED BY LMO (PASSED TO GATC)
-LMO CERT NO: ${certNumber}
-LEAD SEAL NO: 🔒 ${sealNumber}
-INSTRUMENT: ${certificate.instrumentId}
-MODEL: ${certificate.instrumentModel || 'Commercial Weighing Instrument'}
-CATEGORY: ${certificate.category || 'Weighing Instrument'}
+LMO CERTIFICATE NO: ${certNumber}
+PHYSICAL LEAD SEAL NO: 🔒 ${sealNumber}
+INSTRUMENT UID: ${certificate.instrumentId}
+MODEL: ${certificate.instrumentModel || 'Commercial Weighing Scale'}
 OWNER: ${certificate.ownerName || 'Commercial Establishment'}
 VERIFYING LMO: ${certificate.officerName} (${certificate.officerBadge})
 DATE: ${issueDate}
 CALIBRATION: LOAD ${certificate.standardWeight || '20.0 kg'} -> INDICATED ${certificate.indicatedValue || '20.000 kg'}
 ERROR MARGIN: ${certificate.errorMargin || '0.00%'} (PASS)
-TARGET LAB: ${certificate.gatcTargetLab || 'TS Central Metrology Lab (GATC-01)'}
+TARGET GATC LAB: ${certificate.gatcTargetLab || 'TS Central Metrology Lab (GATC-01)'}
 ========================================
-ONLINE RECORD: ${lmoVerifyUrl}`;
+NATIONAL REGISTRY: ${lmoVerifyUrl}`;
+
+  const lmoQrPayload = qrMode === 'url' ? lmoVerifyUrl : fullLmoCertificatePayload;
 
   const handleCopy = () => {
     const text = 'GOVERNMENT OF TELANGANA - LEGAL METROLOGY\nLMO CERTIFICATE: ' + certNumber + '\nLEAD SEAL: ' + sealNumber + '\nINSTRUMENT: ' + certificate.instrumentId + '\nOFFICER: ' + certificate.officerName + ' (' + certificate.officerBadge + ')\nSTATUS: CERTIFIED BY LMO - PASSED TO GATC';
@@ -152,6 +167,26 @@ ONLINE RECORD: ${lmoVerifyUrl}`;
                 </View>
               </View>
 
+              {/* QR Mode Selector: URL vs Complete Offline Certificate Record */}
+              <View style={styles.qrModeToggleRow}>
+                <TouchableOpacity
+                  style={[styles.qrModeBtn, qrMode === 'url' && styles.qrModeBtnActive]}
+                  onPress={() => setQrMode('url')}
+                >
+                  <Text style={[styles.qrModeBtnText, qrMode === 'url' && styles.qrModeBtnTextActive]}>
+                    🌐 Web Link QR
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.qrModeBtn, qrMode === 'text' && styles.qrModeBtnActive]}
+                  onPress={() => setQrMode('text')}
+                >
+                  <Text style={[styles.qrModeBtnText, qrMode === 'text' && styles.qrModeBtnTextActive]}>
+                    📜 Universal Certificate QR (100% Offline)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Official Single LMO QR Code */}
               <View style={styles.qrSection}>
                 <View style={styles.qrBox}>
@@ -163,7 +198,9 @@ ONLINE RECORD: ${lmoVerifyUrl}`;
                   />
                 </View>
                 <Text style={styles.qrCaption}>
-                  ✓ Official LMO Field QR Code • Point any phone camera or QR scanner to view instant field calibration readings &amp; lead seal verification
+                  {qrMode === 'text'
+                    ? '✓ 100% Reliable Offline QR • Any smartphone camera or QR reader instantly displays the full LMO Field Verification Certificate with physical calibration readings & lead seal number without relying on external web tunnels.'
+                    : '✓ Official LMO Field QR Code • Point phone camera to open the live Government Certificate web portal.'}
                 </Text>
               </View>
 
@@ -673,6 +710,38 @@ const styles = StyleSheet.create({
   closeActionBtnText: {
     fontSize: 13,
     fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  qrModeToggleRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 3,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  qrModeBtn: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qrModeBtnActive: {
+    backgroundColor: Colors.primaryNavy,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  qrModeBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  qrModeBtnTextActive: {
     color: '#FFFFFF',
   },
 });

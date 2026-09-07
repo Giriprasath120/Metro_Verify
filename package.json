@@ -21,6 +21,7 @@
     "expo-image-picker": "~16.0.6",
     "expo-location": "~18.0.10",
     "expo-modules-core": "~2.2.3",
+    "expo-speech": "^57.0.2",
     "expo-status-bar": "~2.0.1",
     "lucide-react-native": "^0.475.0",
     "react": "18.3.1",

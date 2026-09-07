@@ -287,37 +287,9 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
               style={styles.textInput}
               value={loginPassword}
               onChangeText={setLoginPassword}
-              placeholder="Enter password (default: password123)"
+              placeholder="Enter your secure password"
               secureTextEntry
             />
-            <Text style={styles.inputHint}>Default test password for all seeded accounts: password123</Text>
-
-            {/* Quick-Fill Demo Accounts */}
-            <View style={styles.quickAccountsSection}>
-              <Text style={styles.quickAccountsTitle}>⚡ Quick-Fill Seeded Test Credentials:</Text>
-              <View style={styles.demoChipsRow}>
-                {DEMO_ACCOUNTS.map(demo => (
-                  <TouchableOpacity
-                    key={demo.id}
-                    style={[
-                      styles.demoChip,
-                      loginIdentifier === demo.id && styles.demoChipActive,
-                    ]}
-                    onPress={() => handleSelectDemo(demo)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.demoChipText,
-                        loginIdentifier === demo.id && styles.demoChipTextActive,
-                      ]}
-                    >
-                      {demo.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
 
             {/* Submit Sign In Button */}
             <TouchableOpacity
