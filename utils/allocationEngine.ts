@@ -153,11 +153,12 @@ export function scoreOfficer(request: AllocationRequest, officer: any): OfficerS
 
   // Dynamic Workload Balancing: 50 base points, -10 per active pending job
   const pending = Number(officer.pendingJobs ?? officer.currentWorkload ?? 0);
-  const maxCap = Number(officer.maxCapacity || 15);
-  let workloadScore = Math.max(-50, Math.round(50 - pending * 10));
+  const maxCap = Number(officer.maxCapacity || 20);
+  let workloadScore = Math.max(-100, Math.round(50 - pending * 10));
 
   if (pending >= maxCap) {
-    workloadScore = -80; // Saturated capacity penalty
+    workloadScore = -100;
+    isEligible = false;
   }
 
   // Time Slot Capacity & Working Hours Enforcement
@@ -167,9 +168,10 @@ export function scoreOfficer(request: AllocationRequest, officer: any): OfficerS
 
   if (slotBookings >= 2) {
     // Time slot capacity exceeded (> 2 inspections booked in this slot)
-    availabilityScore = -80;
+    availabilityScore = -100;
+    isEligible = false;
   } else if (slotBookings === 1) {
-    availabilityScore = 10;
+    availabilityScore = 5;
   } else if (isDateOpen) {
     availabilityScore = 25; // Working time slot completely free
   } else {
@@ -190,12 +192,14 @@ export function scoreOfficer(request: AllocationRequest, officer: any): OfficerS
   }
 
   reasons.push(`${distKm}km distance (+${distanceScore})`);
-  reasons.push(`${pending} pending cases (${workloadScore >= 0 ? '+' : ''}${workloadScore} workload)`);
+  reasons.push(`${pending}/${maxCap} pending cases (${workloadScore >= 0 ? '+' : ''}${workloadScore} workload)`);
 
-  if (slotBookings >= 2) {
-    reasons.push('⚠️ Time slot exceeded (max 2/slot, -80)');
+  if (pending >= maxCap) {
+    reasons.push(`⛔ Workload capacity reached (${pending}/${maxCap})`);
+  } else if (slotBookings >= 2) {
+    reasons.push('⚠️ Time slot booked (max 2/slot, collision prevention)');
   } else if (slotBookings === 1) {
-    reasons.push('Time slot partially booked (1 case, +10)');
+    reasons.push('Time slot partially booked (1 case, +5)');
   } else if (isDateOpen) {
     reasons.push(`Working time slot open on ${request.requestedDate} (+25)`);
   } else {
@@ -207,7 +211,7 @@ export function scoreOfficer(request: AllocationRequest, officer: any): OfficerS
   return {
     officer,
     totalScore,
-    eligible: isEligible && totalScore > -40,
+    eligible: isEligible && pending < maxCap && slotBookings < 2,
     distanceKm: distKm,
     breakdown: {
       jurisdictionScore,
@@ -223,21 +227,33 @@ export function scoreOfficer(request: AllocationRequest, officer: any): OfficerS
  * Rank officers for a single instrument request and return the top suggested officer
  */
 export function allocateSingleSlot(request: AllocationRequest, officers: Officer[]): SingleAllocationResponse {
-  const scored = officers
+  const fieldOfficers = officers.filter((o: any) => o.role !== 'GATC');
+  const candidateOfficers = fieldOfficers.length > 0 ? fieldOfficers : officers;
+
+  const scored = candidateOfficers
     .map(officer => scoreOfficer(request, officer))
     .filter(res => res.eligible)
     .sort((a, b) => {
-      // Primary: totalScore descending
+      // 1. Strict Workload Balancing: Prioritize officers with lowest pending workload
+      const pendingA = Number(a.officer.pendingJobs ?? (a.officer as any).currentWorkload ?? 0);
+      const pendingB = Number(b.officer.pendingJobs ?? (b.officer as any).currentWorkload ?? 0);
+      const pendingDiff = pendingA - pendingB;
+      if (pendingDiff !== 0) return pendingDiff;
+
+      // 2. Collision Prevention: Prefer officer with fewer bookings on this exact slot
+      const slotDiff = Number((a.officer as any).slotBookings ?? 0) - Number((b.officer as any).slotBookings ?? 0);
+      if (slotDiff !== 0) return slotDiff;
+
+      // 3. Composite score difference
       const diff = b.totalScore - a.totalScore;
       if (Math.abs(diff) > 3) return diff;
-      // Secondary: least pending cases
-      const pendingDiff = (a.officer.pendingJobs ?? 0) - (b.officer.pendingJobs ?? 0);
-      if (pendingDiff !== 0) return pendingDiff;
-      // Tertiary: least slot bookings
-      return ((a.officer as any).slotBookings ?? 0) - ((b.officer as any).slotBookings ?? 0);
+
+      // 4. In case of tie, rotate to ensure fluctuation across all officers
+      return a.officer.id.localeCompare(b.officer.id);
     });
 
-  const suggestedOfficer = scored[0] || scoreOfficer(request, officers[0]);
+  const fallback = candidateOfficers.sort((a, b) => (a.pendingJobs ?? 0) - (b.pendingJobs ?? 0))[0] || candidateOfficers[0];
+  const suggestedOfficer = scored[0] || scoreOfficer(request, fallback);
 
   return {
     suggestedOfficer,

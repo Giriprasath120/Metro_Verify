@@ -67,6 +67,7 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
   const silenceTimerRef = useRef<any>(null);
   const keepAliveRef = useRef<any>(null);
   const currentUtteranceRef = useRef<any>(null);
+  const mimeTypeRef = useRef<string>('audio/webm');
 
   // Clean up timers, recognition, media streams, and speech on unmount
   useEffect(() => {
@@ -224,9 +225,8 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
     }
 
     const wordsFromRecognition = transcriptRef.current.trim();
-    const typedText = inputText.trim();
 
-    // Stop recognition & capture recorder chunks
+    // Stop recognition
     const recorder = mediaRecorderRef.current;
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch (e) {}
@@ -234,34 +234,40 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
 
     // Stop visual analyzer
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
-    }
 
     setIsListening(false);
     setAudioLevel(0);
 
+    const stopHardwareTracks = () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(t => { try { t.stop(); } catch (e) {} });
+        mediaStreamRef.current = null;
+      }
+    };
+
     // CASE 1: Browser SpeechRecognition successfully captured words
-    if (wordsFromRecognition || typedText) {
-      const finalQuery = wordsFromRecognition || typedText;
+    if (wordsFromRecognition && wordsFromRecognition.length > 1) {
+      stopHardwareTracks();
       transcriptRef.current = '';
-      setListeningStatus(`✓ Heard: "${finalQuery}" — Analyzing query...`);
-      handleSend(finalQuery, true);
+      setListeningStatus(`✓ Heard: "${wordsFromRecognition}" — Analyzing query...`);
+      handleSend(wordsFromRecognition, true);
       setTimeout(() => setListeningStatus(''), 3000);
       return;
     }
 
-    // CASE 2: Browser recognition didn't yield text -> Fallback to Groq Whisper AI via recorded audio chunks
+    // CASE 2: Fallback to Groq Whisper AI via recorded audio chunks
     if (recorder && recorder.state !== 'inactive') {
       setIsTranscribing(true);
-      setListeningStatus('🎙️ Processing speech with Groq Whisper AI...');
+      setListeningStatus('🎙️ Hearing & transcribing with Groq Whisper AI...');
 
       recorder.onstop = async () => {
+        stopHardwareTracks();
         try {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          if (audioBlob.size < 500) {
+          const actualMime = mimeTypeRef.current || 'audio/webm';
+          const audioBlob = new Blob(audioChunksRef.current, { type: actualMime });
+          if (audioBlob.size < 250) {
             setIsTranscribing(false);
-            setListeningStatus('⚠️ No speech detected. Please speak closer to microphone.');
+            setListeningStatus('⚠️ Speech was too faint. Please speak closer to microphone.');
             setTimeout(() => setListeningStatus(''), 3000);
             return;
           }
@@ -277,7 +283,7 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   audioBase64: base64data,
-                  mimeType: 'audio/webm'
+                  mimeType: actualMime
                 })
               });
               const data = await res.json();
@@ -285,7 +291,7 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
 
               if (data && data.success && data.text && data.text.trim()) {
                 const transcribed = data.text.trim();
-                const isHallucination = /^(thank you|thanks|thank you for watching|subtitles by|\.|\.\.\.)$/i.test(transcribed);
+                const isHallucination = /^(thank you|thanks|thank you so much|thank you for watching|thanks for watching|subtitles by|\.|\.\.\.)$/i.test(transcribed);
                 if (!isHallucination) {
                   setListeningStatus(`✓ Heard: "${transcribed}" — Analyzing query...`);
                   handleSend(transcribed, true);
@@ -317,8 +323,12 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
           recorder.requestData();
         }
         recorder.stop();
-      } catch (e) {}
+      } catch (e) {
+        stopHardwareTracks();
+        setIsTranscribing(false);
+      }
     } else {
+      stopHardwareTracks();
       setListeningStatus('⚠️ No speech detected. Tap mic to speak.');
       setTimeout(() => setListeningStatus(''), 3000);
     }
@@ -394,6 +404,7 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
             mimeType = 'audio/mp4';
           }
         }
+        mimeTypeRef.current = mimeType;
 
         if (typeof MediaRecorder !== 'undefined') {
           const mediaRecorder = new MediaRecorder(stream, { mimeType });
@@ -402,7 +413,7 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
               audioChunksRef.current.push(e.data);
             }
           };
-          mediaRecorder.start(250);
+          mediaRecorder.start(100);
           mediaRecorderRef.current = mediaRecorder;
         }
 
@@ -827,31 +838,36 @@ export const AIChatScreen: React.FC<AIChatScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#F6F9FC'
   },
   keyboardContainer: {
     flex: 1
   },
   geminiBanner: {
-    backgroundColor: '#07162C',
-    paddingVertical: 6,
+    backgroundColor: '#EFF2FE',
+    paddingVertical: 8,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DFE5FE'
   },
   geminiBadge: {
-    color: '#FDBA74',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5
+    color: '#635BFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3
   },
   chatScroll: {
     flex: 1
   },
   chatScrollContent: {
     padding: 16,
-    gap: 12
+    gap: 12,
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center'
   },
   messageRow: {
     flexDirection: 'row',
@@ -865,62 +881,61 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start'
   },
   botAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#0A192F',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#EFF2FE',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
     marginBottom: 2,
-    borderWidth: 1.5,
-    borderColor: 'rgba(212, 175, 55, 0.45)',
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: '#DFE5FE',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 1,
     shadowRadius: 2,
     elevation: 2
   },
   botAvatarText: {
-    fontSize: 15
+    fontSize: 16
   },
   messageBubble: {
     maxWidth: '84%',
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 16,
-    shadowColor: '#0A192F',
+    borderRadius: 14,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 1,
     shadowRadius: 6,
     elevation: 2
   },
   bubbleUser: {
-    backgroundColor: '#1E3A8A', // Deep Royal Blue
-    borderBottomRightRadius: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)'
+    backgroundColor: '#635BFF',
+    borderBottomRightRadius: 4,
+    borderWidth: 0
   },
   bubbleAssistant: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderBottomLeftRadius: 3,
+    borderColor: '#E3E8EE',
+    borderBottomLeftRadius: 4,
     borderLeftWidth: 3.5,
-    borderLeftColor: '#0A192F'
+    borderLeftColor: '#635BFF'
   },
   bubbleSpeakingHighlight: {
-    borderColor: '#3B82F6',
-    borderLeftColor: '#3B82F6',
+    borderColor: '#635BFF',
+    borderLeftColor: '#635BFF',
     borderWidth: 1.5,
     backgroundColor: '#F8FAFC'
   },
   voiceQueryTag: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
     alignSelf: 'flex-start',
     paddingHorizontal: 7,
     paddingVertical: 2.5,
-    borderRadius: 8,
+    borderRadius: 6,
     marginBottom: 6
   },
   voiceQueryTagText: {
@@ -937,7 +952,7 @@ const styles = StyleSheet.create({
   },
   typingText: {
     fontSize: 12,
-    color: '#475569',
+    color: '#425466',
     fontStyle: 'italic',
     fontWeight: '600'
   },
@@ -950,7 +965,7 @@ const styles = StyleSheet.create({
     fontWeight: '500'
   },
   textAssistant: {
-    color: '#0F172A',
+    color: '#0A2540',
     fontWeight: '500'
   },
   bubbleFooter: {
@@ -965,23 +980,23 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   timeUser: {
-    color: 'rgba(255, 255, 255, 0.8)'
+    color: 'rgba(255, 255, 255, 0.85)'
   },
   timeAssistant: {
-    color: '#94A3B8'
+    color: '#8898AA'
   },
   fallbackTag: {
     fontSize: 9.5,
-    color: '#94A3B8',
+    color: '#8898AA',
     fontWeight: '600'
   },
   voicePlayBtn: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EFF2FE',
     paddingHorizontal: 9,
     paddingVertical: 3,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#BFDBFE'
+    borderColor: '#DFE5FE'
   },
   voicePlayBtnActive: {
     backgroundColor: '#FEE2E2',
@@ -991,29 +1006,29 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0'
+    borderTopColor: '#E3E8EE'
   },
   promptsScroll: {
     paddingHorizontal: 16,
     gap: 8
   },
   promptChip: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.2,
-    borderColor: '#CBD5E1',
+    backgroundColor: '#F6F9FC',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    shadowColor: '#000',
+    shadowColor: 'rgba(50, 50, 93, 0.04)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 1,
     shadowRadius: 2,
     elevation: 1
   },
   promptText: {
     fontSize: 11.5,
-    fontWeight: '700',
-    color: '#1E3A8A'
+    fontWeight: '600',
+    color: '#635BFF'
   },
   inputContainer: {
     flexDirection: 'row',
@@ -1022,10 +1037,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    shadowColor: '#0A192F',
+    borderTopColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.06)',
     shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 3
   },
@@ -1036,27 +1051,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 13.5,
-    color: '#0F172A',
-    borderWidth: 1.2,
-    borderColor: '#CBD5E1',
+    color: '#0A2540',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     maxHeight: 90
   },
   sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.accentAmber,
+    backgroundColor: '#635BFF',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 10,
-    shadowColor: Colors.accentAmber,
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 3
   },
   sendButtonDisabled: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#E3E8EE',
     shadowOpacity: 0
   },
   sendButtonText: {
@@ -1068,15 +1083,15 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EFF2FE',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: '#DFE5FE',
+    shadowColor: 'rgba(50, 50, 93, 0.05)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 1,
     shadowRadius: 2,
     elevation: 1
   },
@@ -1099,17 +1114,17 @@ const styles = StyleSheet.create({
     fontSize: 20
   },
   voiceToggleBtn: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)'
+    borderColor: '#DFE5FE'
   },
   voiceToggleText: {
-    color: '#FFFFFF',
+    color: '#635BFF',
     fontSize: 10.5,
-    fontWeight: '800'
+    fontWeight: '700'
   },
   speakingBadge: {
     backgroundColor: 'rgba(30, 58, 138, 0.2)',

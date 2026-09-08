@@ -76,7 +76,7 @@ export const LmoCertificateModal: React.FC<LmoCertificateModalProps> = ({
   const lmoVerifyUrl = `${liveTunnelUrl}/api/certificates/verify?id=${encodeURIComponent(certNumber)}`;
 
   // Universal offline LMO record
-  const fullLmoCertificatePayload = `GOVERNMENT OF TAMIL NADU • LEGAL METROLOGY
+  const fullLmoCertificatePayload = `GOVERNMENT OF INDIA • LEGAL METROLOGY
 LMO FIELD VERIFICATION CERTIFICATE
 ========================================
 STATUS: CERTIFIED BY LMO (PASSED TO GATC)
@@ -89,14 +89,14 @@ VERIFYING LMO: ${certificate.officerName} (${certificate.officerBadge})
 DATE: ${issueDate}
 CALIBRATION: LOAD ${certificate.standardWeight || '20.0 kg'} -> INDICATED ${certificate.indicatedValue || '20.000 kg'}
 ERROR MARGIN: ${certificate.errorMargin || '0.00%'} (PASS)
-TARGET GATC LAB: ${certificate.gatcTargetLab || 'TS Central Metrology Lab (GATC-01)'}
+TARGET GATC LAB: ${certificate.gatcTargetLab || 'National Central Metrology Lab (GATC-01)'}
 ========================================
 NATIONAL REGISTRY: ${lmoVerifyUrl}`;
 
   const lmoQrPayload = qrMode === 'url' ? lmoVerifyUrl : fullLmoCertificatePayload;
 
   const handleCopy = () => {
-    const text = 'GOVERNMENT OF TAMIL NADU - LEGAL METROLOGY\nLMO CERTIFICATE: ' + certNumber + '\nLEAD SEAL: ' + sealNumber + '\nINSTRUMENT: ' + certificate.instrumentId + '\nOFFICER: ' + certificate.officerName + ' (' + certificate.officerBadge + ')\nSTATUS: CERTIFIED BY LMO - PASSED TO GATC';
+    const text = 'GOVERNMENT OF INDIA - LEGAL METROLOGY\nLMO CERTIFICATE: ' + certNumber + '\nLEAD SEAL: ' + sealNumber + '\nINSTRUMENT: ' + certificate.instrumentId + '\nOFFICER: ' + certificate.officerName + ' (' + certificate.officerBadge + ')\nSTATUS: CERTIFIED BY LMO - PASSED TO GATC';
     if (Platform.OS === 'web' && typeof navigator !== 'undefined' && (navigator as any).clipboard) {
       (navigator as any).clipboard.writeText(text);
       Alert.alert('Copied', 'LMO Certificate details copied to clipboard.');
@@ -138,7 +138,7 @@ NATIONAL REGISTRY: ${lmoVerifyUrl}`;
               {/* Header Box */}
               <View style={styles.certHeader}>
                 <Text style={styles.emblemIcon}>🏛️</Text>
-                <Text style={styles.govTitle}>GOVERNMENT OF TAMIL NADU</Text>
+                <Text style={styles.govTitle}>GOVERNMENT OF INDIA</Text>
                 <Text style={styles.deptTitle}>DIRECTORATE OF LEGAL METROLOGY</Text>
                 <Text style={styles.certHeading}>FIELD VERIFICATION & CALIBRATION SLIP</Text>
                 <Text style={styles.ruleText}>[Official Schedule VII Physical Stamping & Standard Test Slip]</Text>
@@ -288,7 +288,7 @@ NATIONAL REGISTRY: ${lmoVerifyUrl}`;
                   <Text style={styles.signNameGatc}>GATC Central Testing Laboratory</Text>
                   <Text style={styles.signBadgeGatc}>Station: GATC-TS-01</Text>
                   <Text style={styles.signDeptGatc}>Awaiting Final Form VI Endorsement</Text>
-                  <Text style={styles.signStampGatc}>Government of Tamil Nadu</Text>
+                  <Text style={styles.signStampGatc}>Government of India</Text>
                 </View>
               </View>
             </View>
@@ -713,45 +713,49 @@ const styles = StyleSheet.create({
   },
   closeActionBtn: {
     flex: 1,
-    backgroundColor: Colors.primaryNavy,
-    paddingVertical: 10,
-    borderRadius: 6,
+    backgroundColor: '#635BFF',
+    paddingVertical: 12,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
   },
   closeActionBtnText: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   qrModeToggleRow: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F6F9FC',
     borderRadius: 8,
     padding: 3,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
   },
   qrModeBtn: {
     flex: 1,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrModeBtnActive: {
-    backgroundColor: Colors.primaryNavy,
-    shadowColor: '#000',
+    backgroundColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.25)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOpacity: 1,
+    shadowRadius: 3,
     elevation: 2,
   },
   qrModeBtnText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#425466',
   },
   qrModeBtnTextActive: {
     color: '#FFFFFF',

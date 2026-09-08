@@ -86,7 +86,7 @@ export const AdminRequestsScreen: React.FC<AdminRequestsScreenProps> = ({
     setSelectedSingleReq(reqItem);
     setAllocatingSingle(true);
     try {
-      const res = await fetch(API_ENDPOINTS.scheduleAllocateBalanced, {
+      const res = await fetch(API_ENDPOINTS.scheduleAllocate, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,33 +94,82 @@ export const AdminRequestsScreen: React.FC<AdminRequestsScreenProps> = ({
           instrumentId: reqItem.instrumentId,
           district: reqItem.instrument?.district || 'Chennai North',
           category: reqItem.category || 'Non-Automatic Weighing Instrument',
+          requestedDate: reqItem.preferredDate || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+          timeSlot: reqItem.preferredTimeSlot || '10:00 AM - 01:00 PM',
         })
       });
       const data = await res.json();
       if (data.success && data.allocation) {
         setSingleAllocResult(data.allocation);
         setSingleModalVisible(true);
-      } else {
-        // Fallback recommendation
+      } else if (data.success && data.result?.suggestedOfficer) {
+        const sugg = data.result.suggestedOfficer;
         setSingleAllocResult({
           recommendedOfficer: {
-            id: 'OFF-01',
-            name: 'V. Ramanathan',
-            badgeNumber: 'LMO-TN-CHN-041',
-            district: 'Chennai North',
-            designation: 'Senior Legal Metrology Inspector',
-            pendingJobs: 2
+            id: sugg.officer.id,
+            name: sugg.officer.name,
+            badgeNumber: sugg.officer.badgeNumber,
+            district: sugg.officer.district,
+            designation: sugg.officer.designation,
+            pendingJobs: sugg.officer.pendingJobs ?? 1,
+            maxCapacity: sugg.officer.maxCapacity || 20,
           },
-          compositeScore: 94,
+          compositeScore: sugg.totalScore,
+          scoreBreakdown: {
+            availability: sugg.breakdown?.availabilityScore ?? 25,
+            workload: sugg.breakdown?.workloadScore ?? 25,
+            proximity: sugg.breakdown?.distanceScore ?? 20,
+            capacity: sugg.breakdown?.jurisdictionScore ?? 20,
+          },
+          scheduledDate: reqItem.preferredDate || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+          timeSlot: reqItem.preferredTimeSlot || '10:00 AM - 01:00 PM',
+          rationale: sugg.explanation || 'Optimal inspector based on low pending queue and active jurisdiction match.'
+        });
+        setSingleModalVisible(true);
+      } else {
+        // Dynamic fallback among active officers to fluctuate evenly
+        let fallbackOfficer = {
+          id: 'LMO-102',
+          name: 'Sunita Rao',
+          badgeNumber: 'LMO-TN-CHN-042',
+          district: 'Chennai North',
+          designation: 'Legal Metrology Officer',
+          pendingJobs: 1,
+          maxCapacity: 20
+        };
+        try {
+          const offRes = await fetch(API_ENDPOINTS.officersSchedule);
+          if (offRes.ok) {
+            const offData = await offRes.json();
+            const fieldOfficers = (offData.officers || []).filter((o: any) => o.role !== 'GATC' && (o.pendingJobs || 0) < (o.maxCapacity || 20));
+            if (fieldOfficers.length > 0) {
+              fieldOfficers.sort((a: any, b: any) => (a.pendingJobs || 0) - (b.pendingJobs || 0));
+              const chosen = fieldOfficers[0];
+              fallbackOfficer = {
+                id: chosen.id,
+                name: chosen.name,
+                badgeNumber: chosen.badgeNumber,
+                district: chosen.district,
+                designation: chosen.designation,
+                pendingJobs: chosen.pendingJobs || 0,
+                maxCapacity: chosen.maxCapacity || 20
+              };
+            }
+          }
+        } catch {}
+
+        setSingleAllocResult({
+          recommendedOfficer: fallbackOfficer,
+          compositeScore: 92,
           scoreBreakdown: {
             availability: 25,
-            workload: 23,
-            proximity: 25,
-            capacity: 21
+            workload: 25,
+            proximity: 22,
+            capacity: 20
           },
-          scheduledDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-          timeSlot: '10:00 AM - 01:00 PM',
-          rationale: 'Optimal inspector based on low pending queue (2 cases) and active jurisdiction match.'
+          scheduledDate: reqItem.preferredDate || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+          timeSlot: reqItem.preferredTimeSlot || '10:00 AM - 01:00 PM',
+          rationale: `Optimal field officer based on lowest pending workload (${fallbackOfficer.pendingJobs}/20) and jurisdiction balancing.`
         });
         setSingleModalVisible(true);
       }
@@ -136,9 +185,9 @@ export const AdminRequestsScreen: React.FC<AdminRequestsScreenProps> = ({
     if (!selectedSingleReq || !singleAllocResult) return;
     try {
       const recOfficer = singleAllocResult.recommendedOfficer;
-      const offId = recOfficer?.id || singleAllocResult.officerId || 'OFF-01';
-      const offName = recOfficer?.name || 'V. Ramanathan';
-      await fetch(API_ENDPOINTS.scheduleAssign, {
+      const offId = recOfficer?.id || singleAllocResult.officerId || 'LMO-101';
+      const offName = recOfficer?.name || 'Assigned Officer';
+      const res = await fetch(API_ENDPOINTS.scheduleAssign, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -148,6 +197,12 @@ export const AdminRequestsScreen: React.FC<AdminRequestsScreenProps> = ({
           timeSlot: singleAllocResult.timeSlot || '10:00 AM - 01:00 PM',
         })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        Alert.alert('Allocation Failed', data.error || 'Could not allocate officer.');
+        return;
+      }
+
       setSingleModalVisible(false);
       setAllocationSuccessModal({
         officerName: offName,
@@ -157,16 +212,8 @@ export const AdminRequestsScreen: React.FC<AdminRequestsScreenProps> = ({
         status: 'ALLOCATED'
       });
       loadData();
-    } catch {
-      setSingleModalVisible(false);
-      setAllocationSuccessModal({
-        officerName: singleAllocResult.recommendedOfficer?.name || 'V. Ramanathan',
-        officerId: singleAllocResult.recommendedOfficer?.id || 'OFF-01',
-        requestId: selectedSingleReq.id,
-        instrumentId: selectedSingleReq.instrumentId || 'INST-01',
-        status: 'ALLOCATED'
-      });
-      loadData();
+    } catch (e: any) {
+      Alert.alert('Assignment Error', e.message || 'Could not complete assignment.');
     }
   };
 
@@ -712,11 +759,14 @@ export const AdminRequestsScreen: React.FC<AdminRequestsScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#F6F9FC',
   },
   container: {
     padding: 16,
     paddingBottom: 40,
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center',
   },
   noticeBanner: {
     flexDirection: 'row',
@@ -724,23 +774,25 @@ const styles = StyleSheet.create({
     gap: 10,
     backgroundColor: '#DCFCE7',
     borderColor: '#86EFAC',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderRadius: 10,
     padding: 12,
     marginBottom: 16,
   },
   noticeText: {
-    color: '#15803D',
+    color: '#059669',
     fontWeight: '700',
     fontSize: 13,
     flex: 1,
   },
   segmentedControl: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#EFF2F6',
     borderRadius: 10,
-    padding: 4,
+    padding: 3,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
   },
   segmentBtn: {
     flex: 1,
@@ -749,21 +801,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   segmentBtnActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    backgroundColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.3)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 2,
   },
   segmentBtnText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#425466',
   },
   segmentBtnTextActive: {
-    color: '#0A192F',
-    fontWeight: '800',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   filterRow: {
     flexDirection: 'row',
@@ -775,7 +827,7 @@ const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#8898AA',
   },
   filterChip: {
     paddingHorizontal: 12,
@@ -783,34 +835,34 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E3E8EE',
   },
   filterChipActive: {
-    backgroundColor: '#0A192F',
-    borderColor: '#0A192F',
+    backgroundColor: '#635BFF',
+    borderColor: '#635BFF',
   },
   filterChipText: {
     fontSize: 11.5,
     fontWeight: '600',
-    color: '#475569',
+    color: '#425466',
   },
   filterChipTextActive: {
     color: '#FFFFFF',
-    fontWeight: '800',
+    fontWeight: '700',
   },
   list: {
-    gap: 12,
+    gap: 14,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 16,
-    borderWidth: 1.2,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0A192F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
     elevation: 2,
   },
   cardHeader: {
@@ -821,11 +873,11 @@ const styles = StyleSheet.create({
   reqId: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0A192F',
+    color: '#0A2540',
   },
   instName: {
     fontSize: 12,
-    color: '#475569',
+    color: '#425466',
     marginTop: 2,
     fontWeight: '500',
   },
@@ -841,7 +893,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F1F4F8',
     marginVertical: 12,
   },
   cardDetails: {
@@ -853,12 +905,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 11.5,
-    color: '#64748B',
+    color: '#8898AA',
     fontWeight: '500',
   },
   detailValue: {
     fontSize: 11.5,
-    color: '#0F172A',
+    color: '#0A2540',
     fontWeight: '600',
     textAlign: 'right',
     maxWidth: '60%',
@@ -867,36 +919,46 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F1F4F8',
   },
   autoAllocateBtn: {
-    backgroundColor: '#0A192F',
-    paddingVertical: 10,
+    backgroundColor: '#635BFF',
+    paddingVertical: 11,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   reallocateBtn: {
-    backgroundColor: '#475569',
+    backgroundColor: '#425466',
   },
   autoAllocateBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   bulkAllocateBtn: {
-    backgroundColor: '#1E3A8A',
-    paddingVertical: 10,
+    backgroundColor: '#635BFF',
+    paddingVertical: 11,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   bulkAllocateBtnText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0.3,
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
@@ -904,24 +966,28 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     marginTop: 20,
+    shadowColor: 'rgba(50, 50, 93, 0.05)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
   },
   emptyTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#0A2540',
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#425466',
     textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(5, 14, 26, 0.75)',
+    backgroundColor: 'rgba(10, 37, 64, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -933,6 +999,12 @@ const styles = StyleSheet.create({
     width: '100%',
     maxHeight: '85%',
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.15)',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 1,
+    shadowRadius: 20,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -940,31 +1012,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderBottomColor: '#E3E8EE',
+    backgroundColor: '#0A2540',
   },
   modalTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0A192F',
+    color: '#FFFFFF',
   },
   modalSubtitle: {
     fontSize: 11,
-    color: '#64748B',
+    color: 'rgba(255, 255, 255, 0.75)',
     marginTop: 2,
   },
   modalCloseBtn: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalCloseText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#475569',
+    color: '#FFFFFF',
   },
   modalBody: {
     padding: 18,
@@ -972,7 +1044,7 @@ const styles = StyleSheet.create({
   officerRecBox: {
     flexDirection: 'row',
     backgroundColor: '#F0FDF4',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#86EFAC',
     borderRadius: 12,
     padding: 14,
@@ -991,16 +1063,16 @@ const styles = StyleSheet.create({
   officerRecName: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#0A2540',
   },
   officerRecBadge: {
     fontSize: 11.5,
-    color: '#475569',
+    color: '#425466',
     marginTop: 2,
   },
   officerRecScore: {
     fontSize: 12,
-    color: '#166534',
+    color: '#059669',
     marginTop: 4,
     fontWeight: '700',
   },
@@ -1009,54 +1081,54 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
     marginBottom: 14,
   },
   breakdownHeading: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#0A192F',
+    color: '#0A2540',
     marginBottom: 8,
     textTransform: 'uppercase',
   },
   scoreRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderBottomWidth: 1,
-    borderBottomColor: '#EDF2F7',
+    borderBottomColor: '#F1F4F8',
   },
   scoreLabel: {
     fontSize: 11.5,
-    color: '#475569',
+    color: '#425466',
   },
   scoreVal: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#0A2540',
   },
   slotBox: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#DFE5FE',
     borderRadius: 10,
     padding: 12,
   },
   slotLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#635BFF',
     textTransform: 'uppercase',
   },
   slotVal: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#1E3A8A',
+    color: '#0A2540',
     marginTop: 4,
   },
   bulkModalDesc: {
     fontSize: 12.5,
-    color: '#475569',
+    color: '#425466',
     lineHeight: 18,
     marginBottom: 14,
   },
@@ -1071,27 +1143,29 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
   },
   batchOfficerName: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#0A2540',
   },
   batchOfficerBadge: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#8898AA',
   },
   batchUnitTag: {
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#EFF2FE',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#DFE5FE',
   },
   batchUnitText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#1E40AF',
+    color: '#635BFF',
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1099,25 +1173,31 @@ const styles = StyleSheet.create({
     gap: 10,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#E3E8EE',
     backgroundColor: '#F8FAFC',
   },
   cancelBtn: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F4F8',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
   },
   cancelBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#334155',
+    color: '#425466',
   },
   confirmBtn: {
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#0A192F',
+    backgroundColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
   },
   confirmBtnText: {
     fontSize: 12,

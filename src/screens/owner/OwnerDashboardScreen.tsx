@@ -1169,11 +1169,11 @@ const markNoticeAcknowledged = (appId: string) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F1F5F9'
+    backgroundColor: '#F6F9FC'
   },
   container: {
-    padding: 18,
-    paddingBottom: 36,
+    padding: 20,
+    paddingBottom: 40,
     maxWidth: 1200,
     width: '100%',
     alignSelf: 'center'
@@ -1183,14 +1183,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ECFDF5',
     borderWidth: 1,
-    borderColor: '#6EE7B7',
-    borderRadius: 10,
+    borderColor: '#A7F3D0',
+    borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
     marginBottom: 14,
-    shadowColor: '#059669',
+    shadowColor: 'rgba(5, 150, 105, 0.1)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2
   },
@@ -1216,13 +1216,13 @@ const styles = StyleSheet.create({
   profileCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
-    padding: 16,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 14,
-    shadowColor: '#0A192F',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
+    borderColor: '#E3E8EE',
+    marginBottom: 16,
+    shadowColor: 'rgba(50, 50, 93, 0.06)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 3
   },
@@ -1233,10 +1233,10 @@ const styles = StyleSheet.create({
   avatarCircle: {
     width: 48,
     height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderRadius: 10,
+    backgroundColor: '#EFF2FE',
+    borderWidth: 1,
+    borderColor: '#D8DEFE',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14
@@ -1248,32 +1248,32 @@ const styles = StyleSheet.create({
     flex: 1
   },
   businessName: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0A192F',
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0A2540',
     letterSpacing: 0.2
   },
   ownerSub: {
     fontSize: 12,
-    color: '#475569',
+    color: '#425466',
     marginTop: 2,
     fontWeight: '500'
   },
   addressText: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#62788D',
     marginTop: 3
   },
   priorityWarningCard: {
     flexDirection: 'row',
     backgroundColor: '#FFFBEB',
     borderColor: '#FDE68A',
-    borderWidth: 1.5,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderRadius: 10,
     padding: 14,
     marginBottom: 16,
     alignItems: 'flex-start',
-    shadowColor: '#D97706',
+    shadowColor: 'rgba(217, 119, 6, 0.1)',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -1300,20 +1300,20 @@ const styles = StyleSheet.create({
     lineHeight: 16
   },
   assignedAlertBanner: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#BFDBFE',
-    borderWidth: 1.5,
+    backgroundColor: '#EFF2FE',
+    borderColor: '#D8DEFE',
+    borderWidth: 1,
     borderRadius: 12,
-    padding: 14,
+    padding: 16,
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    shadowColor: '#2563EB',
+    shadowColor: 'rgba(99, 91, 255, 0.15)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
     elevation: 2
   },
   assignedAlertLeft: {
@@ -1323,51 +1323,51 @@ const styles = StyleSheet.create({
     flex: 1
   },
   assignedAlertIconBox: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     borderRadius: 10,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#93C5FD'
+    borderColor: '#D8DEFE'
   },
   assignedAlertIcon: {
-    fontSize: 20
+    fontSize: 22
   },
   assignedAlertTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#1D4ED8'
+    fontSize: 13.5,
+    fontWeight: '900',
+    color: '#0A2540'
   },
   officerPillBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 6,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#86EFAC'
+    borderColor: '#A7F3D0'
   },
   officerPillBadgeText: {
-    color: '#15803D',
-    fontSize: 9,
+    color: '#047857',
+    fontSize: 9.5,
     fontWeight: '800'
   },
   assignedAlertDesc: {
-    fontSize: 11,
-    color: '#1E40AF',
+    fontSize: 11.5,
+    color: '#425466',
     marginTop: 2,
-    lineHeight: 15
+    lineHeight: 16
   },
   assignedAlertCallBtn: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#635BFF',
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 8,
-    shadowColor: '#2563EB',
+    borderRadius: 6,
+    shadowColor: 'rgba(99, 91, 255, 0.3)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     elevation: 2
   },
   assignedAlertCallText: {
@@ -1387,18 +1387,18 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
     justifyContent: 'center',
-    shadowColor: '#0A192F',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
+    shadowColor: 'rgba(50, 50, 93, 0.05)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
     shadowRadius: 6,
     elevation: 2
   },
   cardHeaderTitle: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#475569',
+    color: '#62788D',
     textAlign: 'center',
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -1406,7 +1406,7 @@ const styles = StyleSheet.create({
   },
   gaugeNote: {
     fontSize: 9.5,
-    color: '#64748B',
+    color: '#8898AA',
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 13,
@@ -1419,15 +1419,16 @@ const styles = StyleSheet.create({
   counterCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
     borderLeftWidth: 4,
+    borderLeftColor: '#635BFF',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: 'rgba(50, 50, 93, 0.04)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1
   },
@@ -1445,45 +1446,45 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: '#0A192F',
-    letterSpacing: 0.2
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0A2540',
+    letterSpacing: 0.1
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 20,
     marginBottom: 12
   },
   sectionCountBadge: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#1D4ED8',
-    backgroundColor: '#EFF6FF',
+    color: '#4B45C6',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#D8DEFE',
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12
   },
   viewAllText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.accentAmber
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#635BFF'
   },
   emptyCard: {
     backgroundColor: '#FFFFFF',
-    padding: 20,
+    padding: 24,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
     alignItems: 'center'
   },
   emptyText: {
-    fontSize: 12,
-    color: '#94A3B8',
+    fontSize: 12.5,
+    color: '#8898AA',
     fontWeight: '500'
   },
   bulkRequestsList: {
@@ -1492,14 +1493,14 @@ const styles = StyleSheet.create({
   },
   bulkCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 18,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    shadowColor: '#0A192F',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.06)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 2
   },
   bulkCardHeader: {
@@ -1512,36 +1513,36 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   bulkIdText: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '900',
-    color: '#0A192F',
+    color: '#0A2540',
     letterSpacing: 0.3
   },
   bulkFacilityText: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
     color: '#1E293B',
     marginTop: 2
   },
   bulkCategoryText: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 11.5,
+    color: '#62788D',
     marginTop: 1
   },
   cardDivider: {
     height: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EDF2F7',
     marginVertical: 12
   },
   bulkCountsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F6F9FC',
     borderRadius: 10,
     paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: '#E3E8EE'
   },
   bulkCountItem: {
     alignItems: 'center'

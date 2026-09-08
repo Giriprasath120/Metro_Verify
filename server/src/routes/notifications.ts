@@ -129,15 +129,30 @@ router.get('/', async (req: Request, res: Response) => {
     const notifications: any[] = [];
     const today = new Date();
 
-    // 1. Officer Allocation Notifications
-    if (officerId) {
+    // 1. Determine if requester is an Officer (LMO / GATC)
+    let effectiveOfficerId = officerId ? String(officerId) : null;
+    if (!effectiveOfficerId && ownerId) {
+      const isOfficerInDb = await prisma.officer.findFirst({
+        where: {
+          OR: [
+            { id: String(ownerId) },
+            { badgeNumber: String(ownerId) },
+          ]
+        }
+      });
+      if (isOfficerInDb) {
+        effectiveOfficerId = isOfficerInDb.id;
+      }
+    }
+
+    if (effectiveOfficerId) {
       const officerAssignments = await prisma.assignment.findMany({
         where: {
-          assignedOfficerId: String(officerId),
+          assignedOfficerId: String(effectiveOfficerId),
           status: { in: ['SCHEDULED', 'IN_PROGRESS', 'PENDING'] }
         },
         include: { instrument: true, owner: true, application: true },
-        take: 10,
+        take: 20,
         orderBy: { assignedAt: 'desc' }
       });
 
@@ -146,18 +161,23 @@ router.get('/', async (req: Request, res: Response) => {
           id: `NOTIF-OFF-ASSIGN-${a.id}`,
           type: 'ALLOCATION',
           level: 'INFO',
-          title: 'New Verification Allocated',
-          message: `Application ${a.applicationId || a.id} for ${a.instrument?.model || 'Equipment'} has been allocated to your field schedule. Scheduled: ${a.scheduledDate}.`,
+          title: `⚖️ Verification Assignment: ${a.instrument?.model || a.instrumentId}`,
+          message: `You have been officially assigned to inspect "${a.instrument?.model || a.instrumentId}" (Application #${a.applicationId || a.id}) for ${a.owner?.businessName || a.owner?.name || 'Applicant'}. Scheduled Date: ${a.scheduledDate} (10:00 AM - 01:00 PM).`,
           timestamp: a.assignedAt.toISOString(),
           read: false,
           actionUrl: 'Schedule',
-          actionText: 'Open Field Schedule'
+          actionText: 'Open Field Task',
+          applicationId: a.applicationId,
+          instrumentId: a.instrumentId,
+          assignmentId: a.id,
+          ownerName: a.owner?.businessName || a.owner?.name,
+          scheduledDate: a.scheduledDate,
         });
       }
     }
 
     // 2. Owner Allocation Notifications (Notifies owner which officer was assigned)
-    if (ownerId) {
+    if (ownerId && !effectiveOfficerId) {
       const ownerAssignments = await prisma.assignment.findMany({
         where: {
           ownerId: String(ownerId),

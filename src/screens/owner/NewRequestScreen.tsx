@@ -681,18 +681,23 @@ export const NewRequestScreen: React.FC<NewRequestScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#F6F9FC'
   },
   container: {
     padding: 16,
-    paddingBottom: 32
+    paddingBottom: 32,
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center'
   },
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#EFF2F6',
     borderRadius: 10,
     padding: 3,
-    marginBottom: 16
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E3E8EE'
   },
   toggleBtn: {
     flex: 1,
@@ -702,15 +707,21 @@ const styles = StyleSheet.create({
     borderRadius: 8
   },
   toggleBtnActive: {
-    backgroundColor: Colors.primaryNavy
+    backgroundColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.3)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2
   },
   toggleText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textSecondary
+    fontWeight: '600',
+    color: '#425466'
   },
   toggleTextActive: {
-    color: '#FFFFFF'
+    color: '#FFFFFF',
+    fontWeight: '700'
   },
   bulkTagRow: {
     flexDirection: 'row',
@@ -718,26 +729,28 @@ const styles = StyleSheet.create({
     gap: 6
   },
   clusterPill: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#EFF2FE',
     paddingHorizontal: 6,
     paddingVertical: 1,
-    borderRadius: 4
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#DFE5FE'
   },
   clusterPillText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#B45309'
+    color: '#635BFF'
   },
   formCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 18,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 20,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
     elevation: 2
   },
   formHeaderRow: {
@@ -746,31 +759,31 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.primaryNavy
+    color: '#0A2540'
   },
   formSubtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: '#425466',
     marginTop: 2
   },
   inputLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#0A2540',
     marginTop: 14,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.3
   },
   textInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E3E8EE',
     borderRadius: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 13,
-    color: Colors.textPrimary
+    color: '#0A2540'
   },
   textArea: {
     minHeight: 60,
@@ -782,20 +795,20 @@ const styles = StyleSheet.create({
     gap: 8
   },
   catChip: {
-    backgroundColor: '#F1F5F9',
-    borderRadius: 6,
-    paddingHorizontal: 10,
+    backgroundColor: '#F6F9FC',
+    borderRadius: 8,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1'
+    borderColor: '#E3E8EE'
   },
   catChipActive: {
-    backgroundColor: Colors.primaryNavy,
-    borderColor: Colors.primaryNavy
+    backgroundColor: '#635BFF',
+    borderColor: '#635BFF'
   },
   catChipText: {
     fontSize: 11,
-    color: Colors.textPrimary,
+    color: '#425466',
     fontWeight: '600'
   },
   catChipTextActive: {
@@ -804,8 +817,8 @@ const styles = StyleSheet.create({
   cameraCaptureBox: {
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#93C5FD',
+    borderWidth: 1.5,
+    borderColor: '#635BFF',
     borderStyle: 'dashed',
     padding: 20,
     alignItems: 'center',
@@ -813,33 +826,33 @@ const styles = StyleSheet.create({
     cursor: 'pointer' as any,
   },
   cameraBoxTitle: {
-    color: Colors.primaryNavy,
+    color: '#0A2540',
     fontSize: 14,
     fontWeight: '700',
   },
   cameraBoxSub: {
-    color: '#64748B',
+    color: '#8898AA',
     fontSize: 11,
     textAlign: 'center',
     marginTop: 4,
     maxWidth: 380,
   },
   photoPreviewCard: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A2540',
     borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E3E8EE',
   },
   previewImage: {
     width: '100%',
     height: 180,
   },
   photoStampOverlay: {
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    backgroundColor: 'rgba(10, 37, 64, 0.92)',
     padding: 10,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: '#1E3A8A',
   },
   stampHeader: {
     flexDirection: 'row',
@@ -851,7 +864,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   stampTitle: {
-    color: '#38BDF8',
+    color: '#00D4FF',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -861,7 +874,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   stampTime: {
-    color: '#94A3B8',
+    color: '#8898AA',
     fontSize: 10,
     marginTop: 2,
   },
@@ -869,10 +882,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 8,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#0A2540',
   },
   retakeBtn: {
-    backgroundColor: '#0284C7',
+    backgroundColor: '#635BFF',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 6,
@@ -894,17 +907,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   feeBreakdownBox: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     padding: 16,
     marginTop: 18,
-    shadowColor: '#0A192F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2
   },
   feeHeaderRow: {
     flexDirection: 'row',
@@ -914,24 +922,24 @@ const styles = StyleSheet.create({
   },
   feeTitle: {
     fontSize: 13.5,
-    fontWeight: '900',
-    color: '#0A192F',
+    fontWeight: '800',
+    color: '#0A2540',
     letterSpacing: 0.2
   },
   feeLawBadge: {
     fontSize: 9.5,
     fontWeight: '800',
-    color: '#1D4ED8',
-    backgroundColor: '#EFF6FF',
+    color: '#635BFF',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#DFE5FE',
     paddingHorizontal: 8,
     paddingVertical: 2.5,
     borderRadius: 6
   },
   feeRuleDescription: {
     fontSize: 10.5,
-    color: '#64748B',
+    color: '#425466',
     marginBottom: 12,
     fontStyle: 'italic'
   },
@@ -942,17 +950,17 @@ const styles = StyleSheet.create({
   },
   feeLabel: {
     fontSize: 11.5,
-    color: '#64748B',
+    color: '#425466',
     fontWeight: '500'
   },
   feeVal: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A'
+    color: '#0A2540'
   },
   feeDivider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E3E8EE',
     marginVertical: 10
   },
   feeRowTotal: {
@@ -962,42 +970,46 @@ const styles = StyleSheet.create({
   },
   feeTotalLabel: {
     fontSize: 13,
-    fontWeight: '900',
-    color: '#0A192F'
+    fontWeight: '800',
+    color: '#0A2540'
   },
   feeTotalVal: {
     fontSize: 17,
     fontWeight: '900',
-    color: '#047857'
+    color: '#635BFF'
   },
   submitBtn: {
-    backgroundColor: '#0A192F',
-    borderRadius: 12,
-    paddingVertical: 15,
+    backgroundColor: '#635BFF',
+    borderRadius: 8,
+    paddingVertical: 14,
     alignItems: 'center',
     marginTop: 20,
-    shadowColor: '#0A192F',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 4
   },
   submitBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '900',
+    fontWeight: '800',
     letterSpacing: 0.5
   },
   btnDisabled: {
     opacity: 0.6
   },
   successCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     padding: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#10B981'
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
   },
   successBadge: {
     flexDirection: 'row',
@@ -1009,30 +1021,30 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
   successIcon: {
-    color: '#047857',
+    color: '#059669',
     fontWeight: '900',
     marginRight: 6
   },
   successTitle: {
-    color: '#047857',
+    color: '#059669',
     fontWeight: '800',
     fontSize: 12
   },
   appIdResult: {
     fontSize: 22,
     fontWeight: '800',
-    color: Colors.primaryNavy,
+    color: '#0A2540',
     marginBottom: 6
   },
   successBatchNumber: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.accentAmber,
+    color: '#635BFF',
     marginBottom: 6
   },
   successDesc: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: '#425466',
     textAlign: 'center',
     marginBottom: 16
   },
@@ -1043,7 +1055,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: '#E3E8EE'
   },
   summaryRow: {
     flexDirection: 'row',
@@ -1053,22 +1065,22 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 11,
-    color: Colors.textSecondary
+    color: '#425466'
   },
   summaryVal: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.textPrimary
+    color: '#0A2540'
   },
   summaryValHighlight: {
     fontSize: 12,
     fontWeight: '800',
-    color: Colors.accentAmber
+    color: '#635BFF'
   },
   summaryValStatus: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#047857',
+    color: '#059669',
     backgroundColor: '#ECFDF5',
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1077,9 +1089,9 @@ const styles = StyleSheet.create({
   idBadgeHighlight: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#93C5FD',
+    borderColor: '#635BFF',
     borderRadius: 4,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1091,12 +1103,12 @@ const styles = StyleSheet.create({
   idBadgeLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#1E40AF'
+    color: '#635BFF'
   },
   idBadgeValue: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#1D4ED8',
+    color: '#0A2540',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
   },
   actionButtonsCol: {
@@ -1104,7 +1116,7 @@ const styles = StyleSheet.create({
     gap: 8
   },
   primaryActionBtn: {
-    backgroundColor: Colors.primaryNavy,
+    backgroundColor: '#635BFF',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center'
@@ -1115,13 +1127,15 @@ const styles = StyleSheet.create({
     fontSize: 13
   },
   secondaryActionBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F6F9FC',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center'
   },
   secondaryActionText: {
-    color: Colors.textPrimary,
+    color: '#0A2540',
     fontWeight: '600',
     fontSize: 13
   },
@@ -1132,19 +1146,19 @@ const styles = StyleSheet.create({
   },
   catPill: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 6,
-    paddingHorizontal: 10,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1'
+    borderColor: '#E3E8EE'
   },
   catPillActive: {
-    backgroundColor: Colors.primaryNavy,
-    borderColor: Colors.primaryNavy
+    backgroundColor: '#635BFF',
+    borderColor: '#635BFF'
   },
   catPillText: {
     fontSize: 11,
-    color: Colors.textPrimary,
+    color: '#425466',
     fontWeight: '600'
   },
   catPillTextActive: {
@@ -1159,40 +1173,40 @@ const styles = StyleSheet.create({
   quickCountLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B'
+    color: '#425466'
   },
   quickCountChip: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: '#F6F9FC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#CBD5E1'
+    borderColor: '#E3E8EE'
   },
   quickCountChipActive: {
-    backgroundColor: Colors.accentAmber,
-    borderColor: '#D97706'
+    backgroundColor: '#635BFF',
+    borderColor: '#635BFF'
   },
   quickCountText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#475569'
+    color: '#425466'
   },
   quickCountTextActive: {
-    color: '#0B2545',
+    color: '#FFFFFF',
     fontWeight: '800'
   },
   fleetAllocationNoteBox: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 6,
-    padding: 8,
+    backgroundColor: '#EFF2FE',
+    borderRadius: 8,
+    padding: 10,
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#BFDBFE'
+    borderColor: '#DFE5FE'
   },
   fleetAllocationNoteText: {
-    fontSize: 10,
-    color: '#1E40AF',
-    lineHeight: 14
+    fontSize: 10.5,
+    color: '#635BFF',
+    lineHeight: 15
   }
 });

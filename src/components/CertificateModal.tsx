@@ -52,7 +52,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const instId = certificate.instrumentId || 'INST-UNKNOWN';
   const issueDate = (certificate as any).issuedDate || (certificate as any).issueDate || new Date().toISOString().split('T')[0];
   const validUntil = certificate.validUntil || '2027-03-01';
-  const authority = (certificate as any).issuingAuthority || 'Directorate of Legal Metrology, Government of Tamil Nadu';
+  const authority = (certificate as any).issuingAuthority || 'Directorate of Legal Metrology, Government of India';
   const officer = (certificate as any).officerName || 'Legal Metrology Officer';
   const standard = (certificate as any).verificationStandard || 'Legal Metrology Act, 2009 (Rule 14)';
   const fee = (certificate as any).verificationFee || '₹500';
@@ -74,14 +74,14 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     dynStatus = { text: `EXPIRING SOON (${diffDays}d left)`, color: '#D97706', bg: '#FEF3C7', border: '#FCD34D' };
   }
 
-  const gatcLab = (certificate as any).gatcLabName || 'Tamil Nadu State Legal Metrology Central Laboratory (GATC-01)';
+  const gatcLab = (certificate as any).gatcLabName || 'National Legal Metrology Central Laboratory (GATC-01)';
 
   // Public verification endpoint URL
   const certIdParam = certificate.id || certNumber;
   const verifyUrl = `${liveTunnelUrl}/api/certificates/verify?id=${encodeURIComponent(certIdParam)}`;
 
   // 1. Comprehensive Digital Certificate Record (scannable offline by ANY phone without internet or web server)
-  const fullCertificatePayload = `GOVERNMENT OF TAMIL NADU • LEGAL METROLOGY
+  const fullCertificatePayload = `GOVERNMENT OF INDIA • LEGAL METROLOGY
 FORM VI DIGITAL VERIFICATION CERTIFICATE
 ========================================
 STATUS: ${dynStatus.text}
@@ -207,11 +207,13 @@ NATIONAL REGISTER: ${verifyUrl}`;
 
             {/* Certificate Frame */}
             <View style={styles.certFrame}>
-              {/* Executive Gov-Tech Accent Strip */}
+              {/* Stripe Multi-Color Accent Strip */}
               <View style={styles.nationalRibbon}>
-                <View style={[styles.ribbonBand, { backgroundColor: '#D4AF37' }]} />
-                <View style={[styles.ribbonBand, { backgroundColor: '#0A192F' }]} />
-                <View style={[styles.ribbonBand, { backgroundColor: '#1E3A8A' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#FF5E5B' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#FF7A59' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#EA4C89' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#635BFF' }]} />
+                <View style={[styles.ribbonBand, { backgroundColor: '#00D4FF' }]} />
               </View>
 
               <View style={styles.certHeader}>
@@ -439,34 +441,36 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    maxWidth: 460,
-    maxHeight: '90%',
+    maxWidth: 480,
+    maxHeight: '92%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.15)',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 1,
+    shadowRadius: 24,
     elevation: 10
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.primaryNavy,
-    paddingHorizontal: 16,
-    paddingVertical: 12
+    backgroundColor: '#0A2540',
+    paddingHorizontal: 18,
+    paddingVertical: 14
   },
   headerTitle: {
-    color: Colors.textWhite,
+    color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '700'
   },
   headerSubtitle: {
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.75)',
     fontSize: 11,
     marginTop: 1
   },
@@ -476,7 +480,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)'
   },
   closeButtonText: {
-    color: Colors.textWhite,
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: 'bold',
     width: 16,
@@ -486,25 +490,25 @@ const styles = StyleSheet.create({
     flexGrow: 1
   },
   scrollContent: {
-    padding: 16
+    padding: 18
   },
   certFrame: {
-    borderWidth: 2,
-    borderColor: '#D4AF37',
-    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    borderRadius: 14,
     padding: 18,
     backgroundColor: '#FFFFFF',
-    shadowColor: '#0A192F',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 1,
     shadowRadius: 10,
-    elevation: 4
+    elevation: 3
   },
   nationalRibbon: {
     flexDirection: 'row',
     height: 4,
     width: '100%',
-    marginBottom: 12,
+    marginBottom: 14,
     borderRadius: 2,
     overflow: 'hidden'
   },
@@ -522,28 +526,28 @@ const styles = StyleSheet.create({
   },
   govTitle: {
     fontSize: 12,
-    fontWeight: '900',
-    color: '#0A192F',
+    fontWeight: '800',
+    color: '#0A2540',
     letterSpacing: 1.2
   },
   deptTitle: {
     fontSize: 9.5,
-    fontWeight: '800',
-    color: '#475569',
+    fontWeight: '700',
+    color: '#425466',
     letterSpacing: 0.8,
     marginTop: 2
   },
   certHeading: {
     fontSize: 15,
     fontWeight: '900',
-    color: Colors.accentAmber,
+    color: '#0A2540',
     marginTop: 8,
     letterSpacing: 0.8,
     textAlign: 'center'
   },
   ruleText: {
     fontSize: 9.5,
-    color: '#64748B',
+    color: '#8898AA',
     fontStyle: 'italic',
     marginTop: 3,
     textAlign: 'center'
@@ -555,13 +559,13 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
     marginVertical: 12
   },
   certNumberText: {
     fontSize: 13.5,
-    fontWeight: '900',
-    color: '#0A192F',
+    fontWeight: '800',
+    color: '#0A2540',
     letterSpacing: 0.3
   },
   qrSection: {
@@ -569,36 +573,36 @@ const styles = StyleSheet.create({
     marginVertical: 12
   },
   qrBox: {
-    padding: 12,
+    padding: 14,
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#D4AF37',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    borderColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.2)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
     elevation: 3
   },
   qrCaption: {
     fontSize: 11,
-    color: '#475569',
+    color: '#425466',
     marginTop: 8,
     fontWeight: '600',
     textAlign: 'center',
   },
   openVerifyBtn: {
     marginTop: 10,
-    backgroundColor: '#0F766E',
-    paddingVertical: 8,
+    backgroundColor: '#635BFF',
+    paddingVertical: 9,
     paddingHorizontal: 16,
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#0F766E',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 3,
   },
@@ -610,7 +614,7 @@ const styles = StyleSheet.create({
   },
   verifyLinkText: {
     fontSize: 11,
-    color: '#0284C7',
+    color: '#635BFF',
     textDecorationLine: 'underline',
     marginBottom: 6,
     fontWeight: '700',
@@ -620,79 +624,79 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E3E8EE',
     padding: 12,
     marginTop: 12
   },
   scannedPreviewTitle: {
     fontSize: 11.5,
     fontWeight: '800',
-    color: '#0A192F',
+    color: '#0A2540',
     marginBottom: 4
   },
   scannedStatusApproved: {
     fontSize: 11.5,
-    fontWeight: '900',
-    color: '#047857',
+    fontWeight: '800',
+    color: '#059669',
     marginBottom: 4
   },
   scannedPreviewText: {
     fontSize: 10.5,
-    color: '#334155',
+    color: '#425466',
     lineHeight: 16
   },
   hashText: {
     fontSize: 9.5,
-    color: '#94A3B8',
+    color: '#8898AA',
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     marginTop: 3
   },
   detailsTable: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: '#E3E8EE',
+    borderRadius: 10,
     marginVertical: 12,
     overflow: 'hidden'
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 7,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9'
+    borderBottomColor: '#F1F4F8'
   },
   tableRowHighlight: {
     flexDirection: 'row',
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: '#FFF7ED'
+    backgroundColor: '#EFF2FE'
   },
   tableLabel: {
     width: 130,
     fontSize: 11,
-    color: '#64748B',
+    color: '#8898AA',
     fontWeight: '600'
   },
   tableValue: {
     flex: 1,
     fontSize: 11.5,
-    color: '#0F172A',
+    color: '#0A2540',
     fontWeight: '700'
   },
   tableLabelHighlight: {
     width: 130,
     fontSize: 11,
-    color: '#C2410C',
+    color: '#635BFF',
     fontWeight: '800'
   },
   tableValueHighlight: {
     flex: 1,
     fontSize: 11.5,
-    color: '#EA580C',
-    fontWeight: '900'
+    color: '#635BFF',
+    fontWeight: '800'
   },
   stampBox: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#059669',
     borderRadius: 8,
     paddingVertical: 8,
@@ -702,15 +706,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
     backgroundColor: '#ECFDF5',
     transform: [{ rotate: '-2deg' }],
-    shadowColor: '#059669',
+    shadowColor: 'rgba(5, 150, 105, 0.2)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 2
   },
   stampText: {
     color: '#059669',
-    fontWeight: '900',
+    fontWeight: '800',
     fontSize: 12,
     letterSpacing: 0.8
   },
@@ -728,17 +732,18 @@ const styles = StyleSheet.create({
   actionBtn: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 1,
+    shadowRadius: 4,
     elevation: 2
   },
   downloadBtn: {
-    backgroundColor: '#0A192F'
+    backgroundColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.35)'
   },
   actionBtnText: {
     color: '#FFFFFF',
@@ -747,12 +752,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3
   },
   shareBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F6F9FC',
     borderWidth: 1,
-    borderColor: '#CBD5E1'
+    borderColor: '#E3E8EE'
   },
   shareBtnText: {
-    color: '#0F172A',
+    color: '#0A2540',
     fontWeight: '700',
     fontSize: 13
   },
@@ -769,7 +774,7 @@ const styles = StyleSheet.create({
   },
   dualEndorsementCard: {
     backgroundColor: '#F0FDF4',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#86EFAC',
     borderRadius: 10,
     padding: 12,
@@ -778,25 +783,25 @@ const styles = StyleSheet.create({
   },
   dualEndorsementTitle: {
     fontSize: 11.5,
-    fontWeight: '900',
-    color: '#15803D',
+    fontWeight: '800',
+    color: '#059669',
     marginBottom: 3,
     textTransform: 'uppercase',
     letterSpacing: 0.4
   },
   dualEndorsementText: {
     fontSize: 10.5,
-    color: '#166534',
+    color: '#047857',
     lineHeight: 15,
   },
   qrModeToggleRow: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EFF2F6',
     borderRadius: 10,
     padding: 3,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
   },
   qrModeBtn: {
     flex: 1,
@@ -806,17 +811,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   qrModeBtnActive: {
-    backgroundColor: '#0A192F',
-    shadowColor: '#000',
+    backgroundColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.3)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 1,
     shadowRadius: 3,
     elevation: 2,
   },
   qrModeBtnText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#425466',
   },
   qrModeBtnTextActive: {
     color: '#FFFFFF',

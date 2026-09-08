@@ -21,17 +21,6 @@ interface AuthScreenProps {
 type AuthMode = 'login' | 'register';
 type SelectedRole = 'owner' | 'officer' | 'gatc' | 'admin';
 
-const DEMO_ACCOUNTS = [
-  { label: '🏪 Owner (Rajesh Kumar)', role: 'owner' as SelectedRole, id: 'OWN-101', name: 'Rajesh Kumar' },
-  { label: '🏪 Owner (Giriprasath B)', role: 'owner' as SelectedRole, id: 'OWN-483', name: 'Giriprasath B' },
-  { label: '⚖️ LMO-101 (V. Ramanathan)', role: 'officer' as SelectedRole, id: 'LMO-101', name: 'V. Ramanathan' },
-  { label: '⚖️ LMO-102 (Sunita Rao)', role: 'officer' as SelectedRole, id: 'LMO-102', name: 'Sunita Rao' },
-  { label: '⚖️ LMO-103 (A. Kumar)', role: 'officer' as SelectedRole, id: 'LMO-103', name: 'A. Kumar' },
-  { label: '⚖️ LMO-104 (K. Priya)', role: 'officer' as SelectedRole, id: 'LMO-104', name: 'K. Priya' },
-  { label: '🔬 GATC-01 (State Lab)', role: 'gatc' as SelectedRole, id: 'GATC-01', name: 'State Central Lab' },
-  { label: '🏛️ State Admin', role: 'admin' as SelectedRole, id: 'ADMIN-101', name: 'Controller Admin' },
-];
-
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [mode, setMode] = useState<AuthMode>('login');
   const [selectedRole, setSelectedRole] = useState<SelectedRole>('owner');
@@ -60,12 +49,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
     else if (role === 'officer') setLoginIdentifier('LMO-101');
     else if (role === 'gatc') setLoginIdentifier('GATC-01');
     else if (role === 'admin') setLoginIdentifier('ADMIN-101');
-  };
-
-  const handleSelectDemo = (demo: typeof DEMO_ACCOUNTS[0]) => {
-    setSelectedRole(demo.role);
-    setLoginIdentifier(demo.id);
-    setLoginPassword('password123');
   };
 
   const handleLogin = async () => {
@@ -145,30 +128,30 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primaryNavy} />
 
-      {/* Executive Gov-Tech Accent Strip */}
+      {/* Stripe Signature Multi-Color Gradient Swoosh Ribbon */}
       <View style={styles.topTricolor}>
-        <View style={[styles.tricolorBand, { backgroundColor: '#D4AF37' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#0A192F' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#1E3A8A' }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#FF5E5B', flex: 1.5 }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#FF7A59', flex: 1.5 }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#EA4C89', flex: 2 }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#635BFF', flex: 3 }]} />
+        <View style={[styles.tricolorBand, { backgroundColor: '#00D4FF', flex: 2 }]} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Official Header */}
+        {/* Stripe Hero Header */}
         <View style={styles.header}>
-          <Text style={styles.emblemIcon}>🏛️</Text>
-          <Text style={styles.govTitle}>GOVERNMENT OF INDIA</Text>
-          <Text style={styles.deptTitle}>MINISTRY OF CONSUMER AFFAIRS, FOOD & PUBLIC DISTRIBUTION</Text>
-          <Text style={styles.deptSub}>DIRECTORATE OF LEGAL METROLOGY • NATIONAL VERIFICATION PORTAL</Text>
-
-          <View style={styles.appTitleCard}>
-            <Text style={styles.appTitle}>METRO VERIFY</Text>
-            <Text style={styles.appSubtitle}>
-              Official Legal Metrology Verification & Stamping Lifecycle Management Gateway
+          <View style={styles.heroPreBadge}>
+            <Text style={styles.heroPreBadgeText}>
+              🏛️ State Metrology Infrastructure: <Text style={styles.heroPreBadgeHighlight}>Tamil Nadu Legal Metrology</Text> • SIH26036
             </Text>
-            <View style={styles.sihBadge}>
-              <Text style={styles.sihBadgeText}>SMART INDIA HACKATHON 2026 • SIH26036</Text>
-            </View>
           </View>
+
+          <Text style={styles.stripeHeroHeadline}>
+            Legal metrology infrastructure to <Text style={styles.stripeHeroGradientText}>ensure trade accuracy.</Text>
+          </Text>
+          <Text style={styles.stripeHeroSubtitle}>
+            Verify instruments, issue digital Form VI certificates, schedule field officers, and inspect tamper-proof 3D digital twins—from your first weighing scale to statewide bulk batches.
+          </Text>
         </View>
 
         {/* Mode Toggle: Sign In vs Register */}
@@ -292,6 +275,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
             />
 
             {/* Submit Sign In Button */}
+            {/* Submit Sign In Button */}
             <TouchableOpacity
               style={[styles.primaryButton, loading && styles.buttonDisabled]}
               onPress={handleLogin}
@@ -301,7 +285,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
               {loading ? (
                 <ActivityIndicator color={Colors.textWhite} />
               ) : (
-                <Text style={styles.primaryButtonText}>Sign In & Open Dashboard ›</Text>
+                <Text style={styles.primaryButtonText}>Sign In to Metro Verify ›</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -442,6 +426,29 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Stripe-style Standards & Statutory Trust Strip */}
+        <View style={styles.trustBarContainer}>
+          <Text style={styles.trustBarLabel}>GOVERNMENT OF TAMIL NADU • STATUTORY COMPLIANCE NETWORK</Text>
+          <View style={styles.trustGrid}>
+            <View style={styles.trustItem}>
+              <Text style={styles.trustItemIcon}>⚖️</Text>
+              <Text style={styles.trustItemText}>Legal Metrology Act 2009</Text>
+            </View>
+            <View style={styles.trustItem}>
+              <Text style={styles.trustItemIcon}>📜</Text>
+              <Text style={styles.trustItemText}>Form VI Digital Stamping</Text>
+            </View>
+            <View style={styles.trustItem}>
+              <Text style={styles.trustItemIcon}>🔬</Text>
+              <Text style={styles.trustItemText}>NABL / ISO 17025 Labs</Text>
+            </View>
+            <View style={styles.trustItem}>
+              <Text style={styles.trustItemIcon}>🔒</Text>
+              <Text style={styles.trustItemText}>HMAC-SHA256 Encrypted QR</Text>
+            </View>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -450,100 +457,75 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F6F9FC',
   },
   container: {
-    padding: 16,
-    paddingBottom: 40,
+    padding: 24,
+    paddingBottom: 60,
+    maxWidth: 640,
+    width: '100%',
+    alignSelf: 'center',
   },
   topTricolor: {
     flexDirection: 'row',
-    height: 4,
+    height: 3.5,
     width: '100%',
   },
   tricolorBand: {
-    flex: 1,
+    height: '100%',
   },
   header: {
     alignItems: 'center',
+    marginBottom: 24,
+    paddingTop: 12,
+  },
+  heroPreBadge: {
+    backgroundColor: '#EFF2FE',
+    borderWidth: 1,
+    borderColor: '#D8DEFE',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
     marginBottom: 16,
-    paddingTop: 8,
   },
-  emblemIcon: {
-    fontSize: 32,
-    marginBottom: 4,
-  },
-  govTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: Colors.primaryNavy,
-    letterSpacing: 1.5,
-  },
-  deptTitle: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#64748B',
-    marginTop: 2,
-    textAlign: 'center',
-  },
-  deptSub: {
-    fontSize: 8,
-    fontWeight: '600',
-    color: '#94A3B8',
-    marginTop: 1,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  appTitleCard: {
-    backgroundColor: '#0A192F',
-    width: '100%',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderRadius: 14,
-    alignItems: 'center',
-    marginTop: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.35)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  appTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 2.5,
-  },
-  appSubtitle: {
+  heroPreBadgeText: {
     fontSize: 11.5,
-    color: 'rgba(203, 213, 225, 0.9)',
-    textAlign: 'center',
-    marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '700',
+    color: '#425466',
+    letterSpacing: 0.2,
   },
-  sihBadge: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
-    borderWidth: 1,
-    borderColor: '#D4AF37',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginTop: 10,
-  },
-  sihBadgeText: {
-    fontSize: 9.5,
+  heroPreBadgeHighlight: {
+    color: '#635BFF',
     fontWeight: '900',
-    color: '#D4AF37',
-    letterSpacing: 0.8,
+  },
+  stripeHeroHeadline: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#0A2540',
+    textAlign: 'center',
+    lineHeight: 36,
+    letterSpacing: -0.5,
+    marginBottom: 12,
+  },
+  stripeHeroGradientText: {
+    color: '#635BFF',
+  },
+  stripeHeroSubtitle: {
+    fontSize: 13.5,
+    color: '#425466',
+    textAlign: 'center',
+    lineHeight: 21,
+    fontWeight: '500',
+    maxWidth: 540,
   },
   modeToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F4F8',
     borderRadius: 10,
     padding: 3,
-    marginBottom: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
   },
   modeTab: {
     flex: 1,
@@ -553,32 +535,32 @@ const styles = StyleSheet.create({
   },
   modeTabActive: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.12,
-    shadowRadius: 3,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 2,
   },
   modeTabText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#62788D',
   },
   modeTabTextActive: {
-    color: '#0A192F',
+    color: '#0A2540',
     fontWeight: '900',
   },
   sectionHeading: {
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#0A192F',
+    color: '#0A2540',
     marginBottom: 10,
     letterSpacing: 0.2,
   },
   roleTabsGrid: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 18,
+    marginBottom: 20,
   },
   roleTab: {
     flex: 1,
@@ -587,20 +569,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 6,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.04)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
   },
   roleTabSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#EFF6FF',
-    shadowColor: '#2563EB',
+    borderColor: '#635BFF',
+    backgroundColor: '#EFF2FE',
+    shadowColor: 'rgba(99, 91, 255, 0.25)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -611,16 +593,16 @@ const styles = StyleSheet.create({
   roleTabLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#334155',
+    color: '#425466',
     textAlign: 'center',
   },
   roleTabLabelSelected: {
-    color: '#1D4ED8',
+    color: '#4B45C6',
     fontWeight: '900',
   },
   roleTabSub: {
-    fontSize: 9,
-    color: '#64748B',
+    fontSize: 9.5,
+    color: '#62788D',
     marginTop: 2,
     textAlign: 'center',
   },
@@ -628,31 +610,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 18,
-    shadowColor: '#0A192F',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    borderColor: '#E3E8EE',
+    padding: 22,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   formHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
-    paddingBottom: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#EDF2F7',
   },
   formTitle: {
-    fontSize: 14,
+    fontSize: 14.5,
     fontWeight: '900',
-    color: '#0A192F',
+    color: '#0A2540',
     flex: 1,
   },
   sslBadge: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '800',
     color: '#047857',
     backgroundColor: '#ECFDF5',
@@ -663,87 +645,47 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   inputLabel: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '800',
-    color: '#334155',
+    color: '#425466',
     marginTop: 12,
-    marginBottom: 5,
+    marginBottom: 6,
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.4,
   },
   inputHint: {
     fontSize: 10.5,
-    color: '#64748B',
+    color: '#62788D',
     marginTop: 4,
     fontStyle: 'italic',
   },
   textInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.2,
-    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 13.5,
-    color: '#0F172A',
+    color: '#0A2540',
   },
   twoColRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   col: {
     flex: 1,
   },
-  quickAccountsSection: {
-    marginTop: 16,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  quickAccountsTitle: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    color: '#475569',
-    marginBottom: 10,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  demoChipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 7,
-  },
-  demoChip: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.2,
-    borderColor: '#CBD5E1',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  demoChipActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: '#93C5FD',
-  },
-  demoChipText: {
-    fontSize: 10.5,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  demoChipTextActive: {
-    color: '#1D4ED8',
-    fontWeight: '900',
-  },
   primaryButton: {
-    backgroundColor: '#0A192F',
+    backgroundColor: '#635BFF',
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 18,
-    shadowColor: '#0A192F',
+    marginTop: 20,
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
     elevation: 4,
   },
   buttonDisabled: {
@@ -752,9 +694,93 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#FFFFFF',
     fontSize: 13.5,
-    fontWeight: '900',
-    letterSpacing: 0.8,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
-
+  buttonDividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 18,
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E3E8EE',
+  },
+  dividerText: {
+    fontSize: 11,
+    color: '#62788D',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  demoChipsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+  },
+  demoChip: {
+    backgroundColor: '#F6F9FC',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  demoChipActive: {
+    backgroundColor: '#EFF2FE',
+    borderColor: '#635BFF',
+  },
+  demoChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#425466',
+  },
+  demoChipTextActive: {
+    color: '#635BFF',
+    fontWeight: '900',
+  },
+  trustBarContainer: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#E3E8EE',
+    alignItems: 'center',
+  },
+  trustBarLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#62788D',
+    letterSpacing: 0.8,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  trustGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 16,
+    maxWidth: 580,
+  },
+  trustItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  trustItemIcon: {
+    fontSize: 14,
+  },
+  trustItemText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0A2540',
+  },
 });
 

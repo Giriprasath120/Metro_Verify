@@ -28,36 +28,45 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
   navigation,
   onSwitchRole
 }) => {
-  const initialInstrument: Instrument = route?.params?.instrument || mockInstruments[0];
+  const passedInst = route?.params?.instrument;
+  const fallbackMock = mockInstruments.find(i => i.id === passedInst?.id) || mockInstruments[0];
+  const initialInstrument: Instrument = {
+    ...fallbackMock,
+    ...(passedInst || {})
+  };
+
   const [certModalVisible, setCertModalVisible] = useState(false);
   const [livePassport, setLivePassport] = useState<any>(null);
 
   React.useEffect(() => {
     async function loadPassport() {
       try {
-        const res = await fetch(API_ENDPOINTS.instrumentPassport(initialInstrument.id));
-        const data = await res.json();
-        if (data.success) {
-          setLivePassport(data);
+        const targetId = initialInstrument.id || passedInst?.id;
+        if (targetId) {
+          const res = await fetch(API_ENDPOINTS.instrumentPassport(targetId));
+          const data = await res.json();
+          if (data.success) {
+            setLivePassport(data);
+          }
         }
       } catch (e) {}
     }
     loadPassport();
-  }, [initialInstrument.id]);
+  }, [initialInstrument.id, passedInst?.id]);
 
   const instrument: Instrument = {
-    id: initialInstrument?.id || 'INST-TS-01',
-    model: initialInstrument?.model || 'Electronic Counter Scale',
-    category: initialInstrument?.category || 'Non-Automatic Weighing Instrument',
-    subCategory: initialInstrument?.subCategory || 'Digital Commercial Scale',
-    capacity: initialInstrument?.capacity || '50 kg',
-    accuracyClass: initialInstrument?.accuracyClass || 'Class III',
-    serialNumber: initialInstrument?.serialNumber || 'SN-2026-LM-01',
-    manufacturer: initialInstrument?.manufacturer || 'Certified Metrology Equipment',
-    location: initialInstrument?.location || 'George Town Wholesale Market, Chennai',
-    district: initialInstrument?.district || 'Chennai',
+    id: livePassport?.instrumentId || initialInstrument?.id || 'INST-TS-01',
+    model: livePassport?.model || initialInstrument?.model || 'Electronic Counter Scale',
+    category: livePassport?.category || initialInstrument?.category || 'Non-Automatic Weighing Instrument',
+    subCategory: livePassport?.subCategory || initialInstrument?.subCategory || 'Digital Commercial Scale',
+    capacity: livePassport?.capacity || initialInstrument?.capacity || '50 kg',
+    accuracyClass: livePassport?.accuracyClass || initialInstrument?.accuracyClass || 'Class III',
+    serialNumber: livePassport?.serialNumber || initialInstrument?.serialNumber || 'SN-2026-LM-01',
+    manufacturer: livePassport?.manufacturer || initialInstrument?.manufacturer || 'Certified Metrology Equipment',
+    location: livePassport?.owner?.address || initialInstrument?.location || 'George Town Wholesale Market, Chennai',
+    district: livePassport?.owner?.district || initialInstrument?.district || 'Chennai',
     state: initialInstrument?.state || 'Tamil Nadu',
-    expiryDate: initialInstrument?.expiryDate || initialInstrument?.scheduledDate || '2027-02-18',
+    expiryDate: livePassport?.activeCertificate?.validUntil || initialInstrument?.expiryDate || initialInstrument?.scheduledDate || '2027-02-18',
     status: livePassport?.status || initialInstrument?.status || 'Verified',
     readings: initialInstrument?.readings || {
       standardWeight: '20.000 kg',
@@ -78,7 +87,7 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
     ownerId: livePassport.activeCertificate.ownerId,
     issuedDate: livePassport.activeCertificate.issueDate,
     validUntil: livePassport.activeCertificate.validUntil,
-    issuingAuthority: 'Directorate of Legal Metrology, Government of Tamil Nadu',
+    issuingAuthority: 'Directorate of Legal Metrology, Government of India',
     officerName: livePassport.activeCertificate.officerName,
     verificationStandard: 'Legal Metrology Act, 2009 (Rule 14)',
     verificationFee: '₹500',
@@ -113,11 +122,13 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
 
         {/* Passport Header Card */}
         <View style={styles.passportCard}>
-          {/* Executive Gov-Tech Accent Strip */}
+          {/* Stripe Accent Strip */}
           <View style={styles.passportRibbon}>
-            <View style={[styles.ribbonColor, { backgroundColor: '#D4AF37' }]} />
-            <View style={[styles.ribbonColor, { backgroundColor: '#0A192F' }]} />
-            <View style={[styles.ribbonColor, { backgroundColor: '#1E3A8A' }]} />
+            <View style={[styles.ribbonColor, { backgroundColor: '#FF5E5B' }]} />
+            <View style={[styles.ribbonColor, { backgroundColor: '#FF7A59' }]} />
+            <View style={[styles.ribbonColor, { backgroundColor: '#EA4C89' }]} />
+            <View style={[styles.ribbonColor, { backgroundColor: '#635BFF' }]} />
+            <View style={[styles.ribbonColor, { backgroundColor: '#00D4FF' }]} />
           </View>
 
           <View style={styles.cardHeader}>
@@ -224,30 +235,40 @@ export const InstrumentPassportScreen: React.FC<InstrumentPassportScreenProps> =
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#F6F9FC'
   },
   container: {
     padding: 16,
-    paddingBottom: 32
+    paddingBottom: 32,
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center'
   },
   backButton: {
-    marginBottom: 12
+    marginBottom: 14,
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8
   },
   backButtonText: {
     fontSize: 13,
-    color: Colors.primaryNavy,
+    color: '#635BFF',
     fontWeight: '700'
   },
   passportCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#E3E8EE',
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
     elevation: 2,
     marginBottom: 16,
     overflow: 'hidden'
@@ -283,78 +304,78 @@ const styles = StyleSheet.create({
   passportBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: Colors.primaryNavy,
+    color: '#0A2540',
     letterSpacing: 0.5
   },
   instrumentName: {
     fontSize: 18,
     fontWeight: '800',
-    color: Colors.textPrimary
+    color: '#0A2540'
   },
   instrumentCategory: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: '#425466',
     marginTop: 2,
     marginBottom: 12
   },
   metaTable: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
+    borderColor: '#E3E8EE',
+    borderRadius: 10,
     overflow: 'hidden',
     marginBottom: 14
   },
   metaRow: {
     flexDirection: 'row',
-    paddingVertical: 7,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9'
+    borderBottomColor: '#F1F4F8'
   },
   metaRowHighlight: {
     flexDirection: 'row',
     paddingVertical: 8,
     paddingHorizontal: 10,
-    backgroundColor: '#FFF7ED'
+    backgroundColor: '#EFF2FE'
   },
   metaKey: {
     width: 130,
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#8898AA',
     fontWeight: '600'
   },
   metaVal: {
     flex: 1,
-    fontSize: 11,
-    color: Colors.textPrimary,
+    fontSize: 11.5,
+    color: '#0A2540',
     fontWeight: '600'
   },
   metaKeyHighlight: {
     width: 130,
     fontSize: 11,
-    color: Colors.accentAmber,
+    color: '#635BFF',
     fontWeight: '700'
   },
   metaValHighlight: {
     flex: 1,
-    fontSize: 11,
-    color: Colors.accentAmber,
+    fontSize: 11.5,
+    color: '#635BFF',
     fontWeight: '800'
   },
   metaValHighlightDate: {
     flex: 1,
     fontSize: 12,
-    color: Colors.accentAmber,
+    color: '#635BFF',
     fontWeight: '800'
   },
   viewCertBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#DFE5FE',
     borderRadius: 8,
-    padding: 10
+    padding: 12
   },
   viewCertIcon: {
     fontSize: 22,
@@ -364,50 +385,55 @@ const styles = StyleSheet.create({
     flex: 1
   },
   viewCertTitle: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#1D4ED8'
+    color: '#635BFF'
   },
   viewCertSub: {
-    fontSize: 10,
-    color: '#3B82F6',
+    fontSize: 10.5,
+    color: '#425466',
     marginTop: 2
   },
   viewCertArrow: {
     fontSize: 20,
-    color: '#1D4ED8',
+    color: '#635BFF',
     fontWeight: '600'
   },
   noCertNotice: {
     backgroundColor: '#F8FAFC',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: '#E3E8EE'
   },
   noCertText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
+    fontSize: 11.5,
+    color: '#425466',
     textAlign: 'center'
   },
   readingsCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 14,
+    borderColor: '#E3E8EE',
+    padding: 16,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
     marginBottom: 16
   },
   readingsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 10
+    marginBottom: 12
   },
   readingsTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#0A2540'
   },
   resultPill: {
     paddingHorizontal: 8,
@@ -426,20 +452,20 @@ const styles = StyleSheet.create({
   readingItem: {
     width: '47%',
     backgroundColor: '#F8FAFC',
-    padding: 8,
-    borderRadius: 6,
+    padding: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0'
+    borderColor: '#E3E8EE'
   },
   readingLabel: {
     fontSize: 9,
-    color: Colors.textMuted,
+    color: '#8898AA',
     fontWeight: '600',
     textTransform: 'uppercase'
   },
   readingValue: {
-    fontSize: 11,
-    color: Colors.textPrimary,
+    fontSize: 11.5,
+    color: '#0A2540',
     fontWeight: '700',
     marginTop: 2
   },

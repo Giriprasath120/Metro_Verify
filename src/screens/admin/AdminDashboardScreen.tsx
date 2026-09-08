@@ -371,11 +371,14 @@ export const AdminDashboardScreen: React.FC<AdminDashboardScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#F6F9FC'
   },
   container: {
     padding: 16,
-    paddingBottom: 32
+    paddingBottom: 32,
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center'
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -385,36 +388,46 @@ const styles = StyleSheet.create({
   },
   statCard: {
     width: '48%',
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#E3E8EE',
     borderLeftWidth: 4,
-    padding: 12
+    padding: 14,
+    shadowColor: 'rgba(50, 50, 93, 0.06)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 2
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
-    color: Colors.primaryNavy
+    color: '#0A2540'
   },
   statLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#0A2540',
     marginTop: 2
   },
   statSub: {
-    fontSize: 9,
-    color: Colors.textMuted,
+    fontSize: 9.5,
+    color: '#8898AA',
     marginTop: 2
   },
   chartCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 14,
-    marginBottom: 16
+    borderColor: '#E3E8EE',
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: 'rgba(50, 50, 93, 0.06)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 2
   },
   chartHeaderRow: {
     flexDirection: 'row',
@@ -423,9 +436,9 @@ const styles = StyleSheet.create({
     marginBottom: 8
   },
   chartTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0A2540'
   },
   legendDotRow: {
     flexDirection: 'row',
@@ -435,49 +448,49 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.accentAmber,
+    backgroundColor: '#635BFF',
     marginRight: 4
   },
   legendText: {
-    fontSize: 9,
-    color: Colors.textMuted
+    fontSize: 10,
+    color: '#8898AA'
   },
   svgWrapper: {
     alignItems: 'center'
   },
   sectionHeader: {
     fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+    fontWeight: '800',
+    color: '#0A2540',
     marginBottom: 10
   },
   topControlBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
   liveIndicatorPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#EFF2FE',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: '#DFE5FE',
   },
   liveGreenDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#635BFF',
     marginRight: 6,
   },
   liveIndicatorText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#15803D',
+    color: '#635BFF',
     letterSpacing: 0.5,
   },
   cleanSlateBtn: {
@@ -494,16 +507,16 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
   inboxSectionCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#93C5FD',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#1D4ED8',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
     elevation: 2,
   },
   inboxHeaderRow: {
@@ -515,11 +528,11 @@ const styles = StyleSheet.create({
   inboxTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.primaryNavy,
+    color: '#0A2540',
   },
   inboxSub: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: '#425466',
     marginBottom: 12,
     lineHeight: 16,
   },
@@ -531,31 +544,36 @@ const styles = StyleSheet.create({
   inboxChip: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    paddingVertical: 8,
+    borderColor: '#E3E8EE',
+    paddingVertical: 10,
     alignItems: 'center',
   },
   inboxChipNum: {
     fontSize: 18,
     fontWeight: '900',
-    color: Colors.primaryNavy,
+    color: '#0A2540',
   },
   inboxChipLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: Colors.textMuted,
+    color: '#8898AA',
     marginTop: 2,
   },
   allocateNowBtn: {
-    backgroundColor: Colors.primaryNavy,
+    backgroundColor: '#635BFF',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   allocateNowBtnText: {
-    color: Colors.textWhite,
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -571,7 +589,7 @@ const styles = StyleSheet.create({
   },
   fleetSub: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: '#8898AA',
     marginTop: 2,
   },
   subFleetHeaderRow: {
@@ -584,12 +602,12 @@ const styles = StyleSheet.create({
   subFleetTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#0A2540',
   },
   subFleetPill: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#DFE5FE',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -597,36 +615,40 @@ const styles = StyleSheet.create({
   subFleetPillText: {
     fontSize: 9.5,
     fontWeight: '800',
-    color: '#1D4ED8',
+    color: '#635BFF',
     letterSpacing: 0.4,
   },
   subFleetDesc: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#425466',
     marginBottom: 10,
   },
   refreshFleetBtn: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#DFE5FE',
   },
   refreshFleetText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#635BFF',
   },
   officersListGrid: {
     gap: 10,
   },
   officerFleetCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 12,
+    borderColor: '#E3E8EE',
+    padding: 14,
+    shadowColor: 'rgba(50, 50, 93, 0.05)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
   },
   officerFleetTop: {
     flexDirection: 'row',
@@ -637,29 +659,31 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EFF2FE',
     alignItems: 'center',
     justifyContent: 'center',
   },
   officerFleetName: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#0A2540',
   },
   roleBadge: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EFF2FE',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#DFE5FE',
   },
   roleBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#1D4ED8',
+    color: '#635BFF',
   },
   officerFleetJurisdiction: {
     fontSize: 11,
-    color: Colors.textMuted,
+    color: '#8898AA',
     marginTop: 2,
   },
   workloadBarContainer: {
@@ -672,7 +696,7 @@ const styles = StyleSheet.create({
   },
   workloadLabel: {
     fontSize: 11,
-    color: Colors.textSecondary,
+    color: '#425466',
   },
   workloadVal: {
     fontSize: 11,
@@ -680,7 +704,7 @@ const styles = StyleSheet.create({
   },
   progressBarTrack: {
     height: 6,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E3E8EE',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -689,7 +713,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   pendingCountPill: {
-    backgroundColor: Colors.accentAmber,
+    backgroundColor: '#635BFF',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -697,7 +721,7 @@ const styles = StyleSheet.create({
   pendingCountText: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.textWhite,
+    color: '#FFFFFF',
   },
   btnDisabled: {
     opacity: 0.6,

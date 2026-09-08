@@ -191,198 +191,207 @@ export const ComplianceAlertsScreen: React.FC<ComplianceAlertsScreenProps> = ({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#F6F9FC',
   },
   container: {
-    padding: 16,
-    paddingBottom: 32
+    padding: 20,
+    paddingBottom: 40,
   },
   backBtn: {
-    marginBottom: 10
+    marginBottom: 14,
   },
   backBtnText: {
     fontSize: 13,
-    color: Colors.primaryNavy,
-    fontWeight: '700'
+    color: '#635BFF',
+    fontWeight: '700',
   },
   overviewCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 12,
-    marginBottom: 12
+    borderColor: '#E3E8EE',
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   overviewTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0A2540',
   },
   overviewDesc: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 2,
-    lineHeight: 15
+    fontSize: 12,
+    color: '#425466',
+    marginTop: 4,
+    lineHeight: 18,
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 6,
-    marginBottom: 14
+    gap: 8,
+    marginBottom: 16,
   },
   tabBtn: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    paddingVertical: 7,
-    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center'
+    borderColor: '#E3E8EE',
+    alignItems: 'center',
   },
   tabBtnActive: {
-    backgroundColor: Colors.primaryNavy,
-    borderColor: Colors.primaryNavy
+    backgroundColor: '#635BFF',
+    borderColor: '#635BFF',
   },
   tabText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#425466',
   },
   tabTextActive: {
-    color: Colors.textWhite,
-    fontWeight: '700'
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   entitiesList: {
-    gap: 12
+    gap: 16,
   },
   ownerCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1
+    borderColor: '#E3E8EE',
+    padding: 18,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   ownerHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
   ownerInfoCol: {
     flex: 1,
-    marginRight: 8
+    marginRight: 10,
   },
   businessName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '800',
-    color: Colors.textPrimary
+    color: '#0A2540',
   },
   ownerSub: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 2
+    fontSize: 11.5,
+    color: '#425466',
+    marginTop: 3,
   },
   phoneText: {
-    fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 2
+    fontSize: 10.5,
+    color: '#8898AA',
+    marginTop: 2,
   },
   scorePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
     alignItems: 'center',
-    minWidth: 54
+    minWidth: 58,
   },
   scoreValue: {
-    fontSize: 18,
-    fontWeight: '900'
+    fontSize: 19,
+    fontWeight: '900',
   },
   scoreSub: {
-    fontSize: 8,
+    fontSize: 8.5,
     fontWeight: '700',
-    marginTop: -2
+    marginTop: -2,
   },
   deductionsSection: {
-    marginTop: 10,
-    paddingTop: 8,
+    marginTop: 12,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9'
+    borderTopColor: '#F6F9FC',
   },
   deductionsLabel: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
-    color: Colors.textMuted,
+    color: '#8898AA',
     letterSpacing: 0.4,
-    marginBottom: 6
+    marginBottom: 8,
   },
   deductionChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF2F2',
-    borderRadius: 6,
-    padding: 6,
-    marginBottom: 4,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 6,
     borderWidth: 1,
-    borderColor: '#FECACA'
+    borderColor: '#FECACA',
   },
   penaltyBadge: {
     backgroundColor: '#DC2626',
-    paddingHorizontal: 5,
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
-    marginRight: 6
+    marginRight: 8,
   },
   penaltyText: {
-    color: Colors.textWhite,
-    fontSize: 9,
-    fontWeight: '800'
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '800',
   },
   deductionReason: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#991B1B',
-    fontWeight: '500'
+    fontWeight: '500',
   },
   cleanRecordChip: {
     backgroundColor: '#ECFDF5',
-    padding: 6,
-    borderRadius: 6,
+    padding: 8,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#A7F3D0'
+    borderColor: '#A7F3D0',
   },
   cleanRecordText: {
-    fontSize: 11,
+    fontSize: 11.5,
     color: '#047857',
-    fontWeight: '600'
+    fontWeight: '600',
   },
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 10
+    marginTop: 12,
   },
   tierTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   tierTagText: {
-    fontSize: 10,
-    fontWeight: '700'
+    fontSize: 10.5,
+    fontWeight: '700',
   },
   noticeBtn: {
     backgroundColor: '#DC2626',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    shadowColor: 'rgba(220, 38, 38, 0.3)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
   },
   noticeBtnText: {
-    color: Colors.textWhite,
-    fontSize: 10,
-    fontWeight: '700'
-  }
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
 });

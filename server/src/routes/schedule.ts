@@ -48,7 +48,7 @@ router.get('/officers', async (req: Request, res: Response) => {
   try {
     const dbOfficers = await prisma.officer.findMany({
       where: { active: true },
-      orderBy: { currentWorkload: 'asc' },
+      orderBy: { id: 'asc' },
     });
 
     const officersWithLiveWorkload = await Promise.all(
@@ -59,7 +59,14 @@ router.get('/officers', async (req: Request, res: Response) => {
             status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
           },
         });
-        return mapDbOfficer(o, livePending);
+        const cappedWorkload = Math.min(o.maxCapacity || 20, livePending);
+        if (o.currentWorkload !== cappedWorkload) {
+          await prisma.officer.update({
+            where: { id: o.id },
+            data: { currentWorkload: cappedWorkload }
+          }).catch(() => {});
+        }
+        return mapDbOfficer(o, cappedWorkload);
       })
     );
 
@@ -141,10 +148,32 @@ router.post('/allocate', async (req: Request, res: Response) => {
     }
 
     const singleResult = allocateSingleSlot(allocationRequest, officers as any);
+    const suggested = singleResult.suggestedOfficer;
     return res.json({
       success: true,
       allocationType: 'single',
       result: singleResult,
+      allocation: {
+        recommendedOfficer: {
+          id: suggested.officer.id,
+          name: suggested.officer.name,
+          badgeNumber: suggested.officer.badgeNumber,
+          district: suggested.officer.district,
+          designation: suggested.officer.designation,
+          pendingJobs: suggested.officer.pendingJobs,
+          maxCapacity: suggested.officer.maxCapacity || 20,
+        },
+        compositeScore: suggested.totalScore,
+        scoreBreakdown: {
+          availability: suggested.breakdown.availabilityScore,
+          workload: suggested.breakdown.workloadScore,
+          proximity: suggested.breakdown.distanceScore,
+          capacity: suggested.breakdown.jurisdictionScore,
+        },
+        scheduledDate: targetDate,
+        timeSlot: targetSlot,
+        rationale: suggested.explanation,
+      }
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message });
@@ -164,6 +193,27 @@ router.post(['/assign', '/confirm'], async (req: Request, res: Response) => {
     }
 
     const { scheduledDate, timeSlot } = req.body;
+
+    // Check target officer capacity
+    const targetOfficer = await prisma.officer.findUnique({ where: { id: officerId } });
+    if (!targetOfficer) {
+      return res.status(404).json({ success: false, error: `Officer ${officerId} not found` });
+    }
+
+    const maxCap = targetOfficer.maxCapacity || 20;
+    const liveWorkload = await prisma.assignment.count({
+      where: {
+        assignedOfficerId: officerId,
+        status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+      },
+    });
+
+    if (liveWorkload >= maxCap) {
+      return res.status(400).json({
+        success: false,
+        error: `Officer ${targetOfficer.name} has reached maximum capacity (${liveWorkload}/${maxCap} assignments). Workload cannot exceed assigned limit. Please allocate to another officer.`,
+      });
+    }
 
     // Fetch application details to get instrumentId and ownerId
     const app = await prisma.application.findUnique({
@@ -226,10 +276,17 @@ router.post(['/assign', '/confirm'], async (req: Request, res: Response) => {
       });
     }
 
-    // 4. Increment officer live workload
+    // 4. Update officer live workload correctly (never exceeding maxCapacity)
+    const updatedPending = await prisma.assignment.count({
+      where: {
+        assignedOfficerId: officerId,
+        status: { in: ['SCHEDULED', 'IN_PROGRESS'] },
+      },
+    });
+
     await prisma.officer.update({
       where: { id: officerId },
-      data: { currentWorkload: { increment: 1 } }
+      data: { currentWorkload: Math.min(maxCap, updatedPending) }
     }).catch(() => {});
 
     // 5. Fetch the newly created assignment with relations
@@ -314,7 +371,7 @@ router.post('/allocate-balanced', async (req: Request, res: Response) => {
       });
     }
 
-    // Track workload in memory to distribute evenly in round-robin sequence across all 5 officers
+    // Track workload in memory to distribute evenly in round-robin sequence across field officers
     const officerWorkloads = officers.map(o => ({
       id: o.id,
       name: o.name,
@@ -322,23 +379,56 @@ router.post('/allocate-balanced', async (req: Request, res: Response) => {
       badgeNumber: o.badgeNumber,
       district: o.district,
       workload: o.currentWorkload,
+      maxCapacity: o.maxCapacity || 20,
       assignmentsMade: 0,
     }));
 
     const assignmentsCreated = [];
 
     for (const app of pendingApps) {
-      // Pick officer with minimum current workload, breaking ties by least assignments made in this run
-      officerWorkloads.sort((a, b) => a.workload - b.workload || a.assignmentsMade - b.assignmentsMade);
-      const chosen = officerWorkloads[0];
+      // Filter officers who haven't reached max capacity
+      const eligibleOfficers = officerWorkloads.filter(o => o.workload < o.maxCapacity);
+      if (eligibleOfficers.length === 0) {
+        break; // All officers are at capacity
+      }
 
-      // Execute stored procedure sp_CreateAssignment
-      await prisma.$queryRawUnsafe(
-        'CALL sp_CreateAssignment(?, ?, ?)',
-        app.id,
-        chosen.id,
-        null
-      );
+      // Pick officer with minimum current workload, breaking ties by least assignments made in this run
+      eligibleOfficers.sort((a, b) => a.workload - b.workload || a.assignmentsMade - b.assignmentsMade);
+      const chosen = eligibleOfficers[0];
+
+      // Execute assignment (fallback to direct creation if SP fails)
+      try {
+        await prisma.$queryRawUnsafe(
+          'CALL sp_CreateAssignment(?, ?, ?)',
+          app.id,
+          chosen.id,
+          null
+        );
+      } catch {
+        const asgCount = await prisma.assignment.count();
+        const asgId = `ASG-${String(asgCount + 1).padStart(4, '0')}`;
+        await prisma.assignment.create({
+          data: {
+            id: asgId,
+            applicationId: app.id,
+            instrumentId: app.instrumentId,
+            ownerId: app.ownerId,
+            assignedOfficerId: chosen.id,
+            status: 'SCHEDULED',
+            scheduledDate: app.preferredDate || new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+          }
+        });
+        await prisma.application.update({
+          where: { id: app.id },
+          data: { status: 'SCHEDULED' }
+        });
+        if (app.instrumentId) {
+          await prisma.instrument.update({
+            where: { id: app.instrumentId },
+            data: { status: 'SCHEDULED' }
+          });
+        }
+      }
 
       // Increment in-memory counter for round-robin balancing
       chosen.workload += 1;
@@ -355,9 +445,20 @@ router.post('/allocate-balanced', async (req: Request, res: Response) => {
       });
     }
 
+    // Sync all officers' currentWorkload accurately
+    for (const off of officers) {
+      const realLive = await prisma.assignment.count({
+        where: { assignedOfficerId: off.id, status: { in: ['SCHEDULED', 'IN_PROGRESS'] } }
+      });
+      await prisma.officer.update({
+        where: { id: off.id },
+        data: { currentWorkload: Math.min(off.maxCapacity || 20, realLive) }
+      }).catch(() => {});
+    }
+
     return res.json({
       success: true,
-      message: `Successfully allocated ${assignmentsCreated.length} verification requests evenly across ${officers.length} officers.`,
+      message: `Successfully allocated ${assignmentsCreated.length} verification requests evenly across ${officers.length} officers without exceeding capacity.`,
       allocatedCount: assignmentsCreated.length,
       officerDistribution: officerWorkloads.map(o => ({
         officerId: o.id,
@@ -365,6 +466,7 @@ router.post('/allocate-balanced', async (req: Request, res: Response) => {
         role: o.role,
         assignedCount: o.assignmentsMade,
         totalWorkload: o.workload,
+        maxCapacity: o.maxCapacity,
       })),
       assignments: assignmentsCreated,
     });

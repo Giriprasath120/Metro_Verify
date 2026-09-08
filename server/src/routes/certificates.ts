@@ -749,8 +749,8 @@ router.get(['/pdf', '/:id/pdf'], async (req: Request, res: Response) => {
     doc.y = 52;
 
     // Header Title
-    doc.fontSize(16).font('Helvetica-Bold').fillColor('#0B2545').text('GOVERNMENT OF TAMIL NADU', { align: 'center' });
-    doc.fontSize(11).font('Helvetica').fillColor('#475569').text('DEPARTMENT OF LEGAL METROLOGY', { align: 'center' });
+    doc.fontSize(16).font('Helvetica-Bold').fillColor('#0B2545').text('GOVERNMENT OF INDIA', { align: 'center' });
+    doc.fontSize(11).font('Helvetica').fillColor('#475569').text('DEPARTMENT OF CONSUMER AFFAIRS • LEGAL METROLOGY DIVISION', { align: 'center' });
     doc.fontSize(9).font('Helvetica-Oblique').fillColor('#64748B').text('Issued under Section 24 of The Legal Metrology Act, 2009 & Rule 14', { align: 'center' });
 
     doc.moveDown(0.8);
@@ -810,7 +810,7 @@ router.get(['/pdf', '/:id/pdf'], async (req: Request, res: Response) => {
     doc.fontSize(9).font('Helvetica-Bold').fillColor('#0B2545').text(`Digitally Signed by: ${cert.officerName}`, col1, sigY);
     doc.fontSize(8).font('Helvetica').fillColor('#64748B').text(`Designation: ${cert.officerDesignation || 'Senior Legal Metrology Officer'}`, col1, sigY + 14);
     doc.fontSize(8).font('Helvetica').fillColor('#64748B').text(`Badge / Seal No: ${cert.officerBadge || 'LM-HYD-042'}`, col1, sigY + 26);
-    doc.fontSize(8).font('Helvetica').fillColor('#64748B').text(`Department of Legal Metrology, Government of Tamil Nadu`, col1, sigY + 38);
+    doc.fontSize(8).font('Helvetica').fillColor('#64748B').text(`Directorate of Legal Metrology, Government of India`, col1, sigY + 38);
 
     // Footer notice
     doc.fontSize(7).font('Helvetica-Oblique').fillColor('#94A3B8').text(

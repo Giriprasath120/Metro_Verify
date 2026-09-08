@@ -113,18 +113,18 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 26,
     fontWeight: '900',
-    color: '#0A192F',
-    letterSpacing: -0.5
+    color: '#0A2540',
+    letterSpacing: -0.5,
   },
   scaleText: {
     fontSize: 10.5,
     fontWeight: '700',
-    color: '#94A3B8',
-    marginTop: -2
+    color: '#8898AA',
+    marginTop: -2,
   },
   gradeContainer: {
     alignItems: 'center',
-    marginTop: 8
+    marginTop: 8,
   },
   gradeBadge: {
     flexDirection: 'row',
@@ -133,23 +133,23 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 12,
     borderWidth: 1,
-    gap: 5
+    gap: 5,
   },
   gradeDot: {
     width: 6,
     height: 6,
-    borderRadius: 3
+    borderRadius: 3,
   },
   gradeText: {
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.3
+    letterSpacing: 0.3,
   },
   ratingText: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
-    color: '#64748B',
-    marginTop: 3
-  }
+    color: '#425466',
+    marginTop: 3,
+  },
 });
 

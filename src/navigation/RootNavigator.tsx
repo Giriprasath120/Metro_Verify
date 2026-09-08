@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { navigationRef } from './navigationService';
 
 // Screens
 import { AuthScreen } from '../screens/auth/AuthScreen';
@@ -163,8 +164,8 @@ function OwnerTabNavigator({ onSwitchRole }: { onSwitchRole: () => void }) {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.accentAmber,
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: '#635BFF',
+        tabBarInactiveTintColor: '#8898AA',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel
       }}
@@ -271,8 +272,8 @@ function OfficerTabNavigator({
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primaryNavy,
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: '#635BFF',
+        tabBarInactiveTintColor: '#8898AA',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel
       }}
@@ -313,8 +314,8 @@ function AdminTabNavigator({ onSwitchRole }: { onSwitchRole: () => void }) {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primaryNavy,
-        tabBarInactiveTintColor: '#64748B',
+        tabBarActiveTintColor: '#635BFF',
+        tabBarInactiveTintColor: '#8898AA',
         tabBarStyle: styles.tabBar,
         tabBarLabelStyle: styles.tabBarLabel
       }}
@@ -400,7 +401,7 @@ export const RootNavigator: React.FC = () => {
   };
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       {currentRole === 'none' && (
         <AuthScreen onLoginSuccess={handleLoginSuccess} />
       )}
@@ -429,32 +430,32 @@ const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#E3E8EE',
     height: 64,
     paddingBottom: 8,
     paddingTop: 8,
-    shadowColor: '#0A192F',
-    shadowOffset: { width: 0, height: -3 },
+    shadowColor: 'rgba(50, 50, 93, 0.06)',
+    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 8
+    elevation: 4
   },
   tabBarLabel: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '700',
     marginTop: 2
   },
   webNavBar: {
-    backgroundColor: '#050E1A',
-    borderBottomWidth: 1.5,
-    borderBottomColor: 'rgba(212, 175, 55, 0.4)',
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 6
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E3E8EE',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3
   },
   webNavContainer: {
     flexDirection: 'row',
@@ -470,43 +471,43 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   webNavEmblem: {
-    fontSize: 28,
+    fontSize: 26,
   },
   webNavTitle: {
-    color: '#FFFFFF',
-    fontSize: 16.5,
+    color: '#0A2540',
+    fontSize: 17,
     fontWeight: '900',
-    letterSpacing: 1.2,
+    letterSpacing: 0.8,
   },
   webNavSub: {
-    color: '#94A3B8',
-    fontSize: 10,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+    color: '#62788D',
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.2,
   },
   webNavTabs: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    gap: 4,
+    backgroundColor: '#F6F9FC',
     padding: 4,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: '#E3E8EE',
   },
   webTabBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
+    paddingHorizontal: 15,
     paddingVertical: 8,
-    borderRadius: 7,
+    borderRadius: 8,
   },
   webTabBtnActive: {
-    backgroundColor: Colors.accentAmber,
-    shadowColor: Colors.accentAmber,
+    backgroundColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 3,
   },
@@ -514,27 +515,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   webTabText: {
-    color: '#CBD5E1',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#425466',
+    fontSize: 12.5,
+    fontWeight: '600',
   },
   webTabTextActive: {
     color: '#FFFFFF',
     fontWeight: '800',
   },
   webLogoutBtn: {
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: '#F6F9FC',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    borderColor: '#E3E8EE',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   webLogoutText: {
-    color: '#F87171',
-    fontSize: 11.5,
+    color: '#0A2540',
+    fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
 });
 

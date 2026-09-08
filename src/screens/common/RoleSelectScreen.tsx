@@ -17,13 +17,13 @@ interface RoleSelectScreenProps {
 export const RoleSelectScreen: React.FC<RoleSelectScreenProps> = ({ onSelectRole }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primaryNavy} />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       
-      {/* Executive Gov-Tech Accent Strip */}
-      <View style={styles.topTricolor}>
-        <View style={[styles.tricolorBand, { backgroundColor: '#D4AF37' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#0A192F' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#1E3A8A' }]} />
+      {/* Stripe Signature Gradient Swoosh Ribbon */}
+      <View style={styles.stripeRibbon}>
+        {Colors.stripeRibbon.map((color: string, index: number) => (
+          <View key={index} style={[styles.ribbonBand, { backgroundColor: color }]} />
+        ))}
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
@@ -48,7 +48,7 @@ export const RoleSelectScreen: React.FC<RoleSelectScreenProps> = ({ onSelectRole
         </View>
 
         <Text style={styles.sectionHeader}>Select Your Verification Role to Continue</Text>
-        <Text style={styles.sectionSub}>Simulated Authentication Gateway</Text>
+        <Text style={styles.sectionSub}>Unified Authentication & Access Gateway</Text>
 
         {/* Role Cards */}
         <View style={styles.rolesGrid}>
@@ -58,14 +58,14 @@ export const RoleSelectScreen: React.FC<RoleSelectScreenProps> = ({ onSelectRole
             onPress={() => onSelectRole('owner')}
             activeOpacity={0.85}
           >
-            <View style={[styles.iconCircle, { backgroundColor: '#FFF7ED' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#EFF2FE' }]}>
               <Text style={styles.roleIcon}>🏪</Text>
             </View>
             <View style={styles.roleTextContainer}>
               <View style={styles.roleTitleRow}>
                 <Text style={styles.roleTitle}>Instrument Owner</Text>
-                <View style={[styles.rolePill, { backgroundColor: '#FFF7ED' }]}>
-                  <Text style={[styles.rolePillText, { color: Colors.accentAmber }]}>Industry / Trader</Text>
+                <View style={[styles.rolePill, { backgroundColor: '#EFF2FE' }]}>
+                  <Text style={[styles.rolePillText, { color: '#635BFF' }]}>Industry / Trader</Text>
                 </View>
               </View>
               <Text style={styles.roleDesc}>
@@ -86,14 +86,14 @@ export const RoleSelectScreen: React.FC<RoleSelectScreenProps> = ({ onSelectRole
             onPress={() => onSelectRole('officer')}
             activeOpacity={0.85}
           >
-            <View style={[styles.iconCircle, { backgroundColor: '#EFF6FF' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#EFF2FE' }]}>
               <Text style={styles.roleIcon}>⚖️</Text>
             </View>
             <View style={styles.roleTextContainer}>
               <View style={styles.roleTitleRow}>
                 <Text style={styles.roleTitle}>LMO / GATC Officer</Text>
-                <View style={[styles.rolePill, { backgroundColor: '#EFF6FF' }]}>
-                  <Text style={[styles.rolePillText, { color: '#1D4ED8' }]}>Field Enforcement</Text>
+                <View style={[styles.rolePill, { backgroundColor: '#EFF2FE' }]}>
+                  <Text style={[styles.rolePillText, { color: '#635BFF' }]}>Field Enforcement</Text>
                 </View>
               </View>
               <Text style={styles.roleDesc}>
@@ -114,14 +114,14 @@ export const RoleSelectScreen: React.FC<RoleSelectScreenProps> = ({ onSelectRole
             onPress={() => onSelectRole('admin')}
             activeOpacity={0.85}
           >
-            <View style={[styles.iconCircle, { backgroundColor: '#ECFDF5' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: '#EFF2FE' }]}>
               <Text style={styles.roleIcon}>📊</Text>
             </View>
             <View style={styles.roleTextContainer}>
               <View style={styles.roleTitleRow}>
                 <Text style={styles.roleTitle}>Administrator</Text>
-                <View style={[styles.rolePill, { backgroundColor: '#ECFDF5' }]}>
-                  <Text style={[styles.rolePillText, { color: '#047857' }]}>State Directorate</Text>
+                <View style={[styles.rolePill, { backgroundColor: '#EFF2FE' }]}>
+                  <Text style={[styles.rolePillText, { color: '#635BFF' }]}>State Directorate</Text>
                 </View>
               </View>
               <Text style={styles.roleDesc}>
@@ -152,200 +152,219 @@ export const RoleSelectScreen: React.FC<RoleSelectScreenProps> = ({ onSelectRole
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background
+    backgroundColor: '#F6F9FC',
   },
-  topTricolor: {
+  stripeRibbon: {
     flexDirection: 'row',
-    height: 4,
-    width: '100%'
+    height: 3,
+    width: '100%',
   },
-  tricolorBand: {
+  ribbonBand: {
     flex: 1,
-    height: '100%'
+    height: '100%',
   },
   container: {
-    padding: 16,
-    paddingBottom: 32
+    padding: 24,
+    paddingBottom: 48,
+    maxWidth: 720,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: Colors.primaryNavy,
-    paddingVertical: 18,
-    paddingHorizontal: 14,
-    borderRadius: 12
+    marginBottom: 28,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   emblemContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EFF2FE',
+    borderWidth: 1,
+    borderColor: 'rgba(99, 91, 255, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6
+    marginBottom: 10,
   },
   emblemIcon: {
-    fontSize: 24
+    fontSize: 24,
   },
   govTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.textWhite,
-    letterSpacing: 1.2
+    color: '#0A2540',
+    letterSpacing: 1.2,
   },
   deptTitle: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: '#425466',
     textAlign: 'center',
-    marginTop: 2
+    marginTop: 4,
   },
   deptSub: {
-    fontSize: 8,
-    color: 'rgba(255, 255, 255, 0.65)',
+    fontSize: 9,
+    color: '#8898AA',
     textAlign: 'center',
-    marginTop: 1
+    marginTop: 2,
   },
   appTitleCard: {
     alignItems: 'center',
-    marginTop: 12,
-    paddingTop: 10,
+    marginTop: 16,
+    paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.15)',
-    width: '100%'
+    borderTopColor: '#E3E8EE',
+    width: '100%',
   },
   appTitle: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '900',
-    color: Colors.accentAmber,
-    letterSpacing: 1
+    color: '#0A2540',
+    letterSpacing: 0.8,
   },
   appSubtitle: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 12,
+    color: '#425466',
     textAlign: 'center',
-    marginTop: 4,
-    paddingHorizontal: 12
+    marginTop: 6,
+    paddingHorizontal: 12,
+    lineHeight: 18,
   },
   sihBadge: {
-    backgroundColor: 'rgba(230, 81, 0, 0.25)',
-    borderColor: Colors.accentAmber,
+    backgroundColor: '#EFF2FE',
+    borderColor: 'rgba(99, 91, 255, 0.3)',
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 12,
-    marginTop: 8
+    marginTop: 10,
   },
   sihBadgeText: {
-    color: Colors.accentOrange,
-    fontSize: 9,
+    color: '#635BFF',
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.5
+    letterSpacing: 0.5,
   },
   sectionHeader: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0A2540',
     textAlign: 'center',
-    marginTop: 4
+    marginTop: 8,
   },
   sectionSub: {
-    fontSize: 12,
-    color: Colors.textSecondary,
+    fontSize: 13,
+    color: '#425466',
     textAlign: 'center',
-    marginBottom: 16,
-    marginTop: 2
+    marginBottom: 20,
+    marginTop: 4,
   },
   rolesGrid: {
-    gap: 12
+    gap: 16,
   },
   roleCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    padding: 18,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+    elevation: 3,
   },
   iconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14
+    marginRight: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 91, 255, 0.15)',
   },
   roleIcon: {
-    fontSize: 24
+    fontSize: 24,
   },
   roleTextContainer: {
-    flex: 1
+    flex: 1,
   },
   roleTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4
+    marginBottom: 4,
   },
   roleTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0A2540',
   },
   rolePill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 91, 255, 0.2)',
   },
   rolePillText: {
-    fontSize: 10,
-    fontWeight: '700'
+    fontSize: 10.5,
+    fontWeight: '800',
   },
   roleDesc: {
     fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 16
+    color: '#425466',
+    lineHeight: 18,
   },
   featureChipsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 8
+    marginTop: 10,
   },
   featureChip: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.primaryNavy,
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#635BFF',
+    backgroundColor: '#EFF2FE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 91, 255, 0.15)',
   },
   arrowIcon: {
-    fontSize: 22,
-    color: Colors.textMuted,
-    fontWeight: '300',
-    marginLeft: 8
+    fontSize: 24,
+    color: '#635BFF',
+    fontWeight: '400',
+    marginLeft: 12,
   },
   footer: {
-    marginTop: 24,
-    alignItems: 'center'
+    marginTop: 32,
+    alignItems: 'center',
   },
   footerText: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    textAlign: 'center'
+    fontSize: 11.5,
+    color: '#425466',
+    textAlign: 'center',
   },
   footerSub: {
-    fontSize: 10,
-    color: Colors.textMuted,
-    marginTop: 2,
-    textAlign: 'center'
-  }
+    fontSize: 10.5,
+    color: '#8898AA',
+    marginTop: 4,
+    textAlign: 'center',
+  },
 });

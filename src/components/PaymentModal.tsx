@@ -67,7 +67,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
           {/* Amount and Beneficiary */}
           <View style={styles.challanSummaryBox}>
-            <Text style={styles.govTitle}>GOVERNMENT OF TAMIL NADU • LEGAL METROLOGY</Text>
+            <Text style={styles.govTitle}>GOVERNMENT OF INDIA • LEGAL METROLOGY</Text>
             <Text style={styles.challanPurpose}>{purpose}</Text>
             <View style={styles.amountRow}>
               <Text style={styles.rupeeSymbol}>₹</Text>
@@ -261,117 +261,120 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   challanSummaryBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    padding: 14,
+    backgroundColor: '#F6F9FC',
+    borderRadius: 12,
+    padding: 16,
     marginVertical: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    alignItems: 'center'
+    borderColor: '#E3E8EE',
+    alignItems: 'center',
   },
   govTitle: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
-    color: '#1E3A8A',
+    color: '#635BFF',
     letterSpacing: 0.6,
-    marginBottom: 4
+    marginBottom: 4,
   },
   challanPurpose: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '600',
-    color: '#334155',
+    color: '#0A2540',
     textAlign: 'center',
-    marginBottom: 8
+    marginBottom: 8,
   },
   amountRow: {
     flexDirection: 'row',
-    alignItems: 'baseline'
+    alignItems: 'baseline',
   },
   rupeeSymbol: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#0B2545',
-    marginRight: 2
+    color: '#0A2540',
+    marginRight: 2,
   },
   amountValue: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800',
-    color: '#0B2545'
+    color: '#0A2540',
   },
   amountDecimal: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#64748B'
+    color: '#8898AA',
   },
   challanMeta: {
-    fontSize: 10,
-    color: '#64748B',
-    marginTop: 6
+    fontSize: 10.5,
+    color: '#8898AA',
+    marginTop: 6,
   },
   methodTabs: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F6F9FC',
     borderRadius: 8,
     padding: 3,
-    marginBottom: 14
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
   },
   methodTab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 9,
     alignItems: 'center',
-    borderRadius: 6
+    borderRadius: 6,
   },
   methodTabActive: {
     backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2
+    shadowOpacity: 1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   methodTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B'
+    color: '#425466',
   },
   methodTabTextActive: {
-    color: '#0B2545',
-    fontWeight: '700'
+    color: '#635BFF',
+    fontWeight: '800',
   },
   upiContainer: {
-    marginBottom: 16
+    marginBottom: 16,
   },
   sectionLabel: {
-    fontSize: 12,
+    fontSize: 12.5,
     fontWeight: '700',
-    color: '#334155',
-    marginBottom: 8
+    color: '#0A2540',
+    marginBottom: 8,
   },
   upiGrid: {
     flexDirection: 'row',
-    gap: 8
+    gap: 8,
   },
   upiOptionCard: {
     flex: 1,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: 'center',
-    position: 'relative'
+    position: 'relative',
+    backgroundColor: '#FFFFFF',
   },
   upiOptionCardSelected: {
-    borderColor: '#0284C7',
-    backgroundColor: '#F0F9FF'
+    borderColor: '#635BFF',
+    backgroundColor: '#EFF2FE',
   },
   upiAppText: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '600',
-    color: '#475569'
+    color: '#425466',
   },
   upiAppTextActive: {
-    color: '#0369A1',
-    fontWeight: '700'
+    color: '#635BFF',
+    fontWeight: '800',
   },
   checkDot: {
     position: 'absolute',
@@ -380,76 +383,83 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#0284C7'
+    backgroundColor: '#635BFF',
   },
   mockFormBox: {
-    marginBottom: 16
+    marginBottom: 16,
   },
   mockInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F6F9FC',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E3E8EE',
     borderRadius: 8,
-    padding: 10
+    padding: 10,
   },
   mockInputText: {
     fontSize: 12,
-    color: '#334155',
-    fontWeight: '500'
+    color: '#0A2540',
+    fontWeight: '500',
   },
   bankChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
-    backgroundColor: '#F1F5F9'
+    backgroundColor: '#F6F9FC',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
   },
   bankChipText: {
     fontSize: 11,
-    color: '#334155',
-    fontWeight: '600'
+    color: '#0A2540',
+    fontWeight: '600',
   },
   paySubmitBtn: {
-    backgroundColor: '#0284C7',
+    backgroundColor: '#635BFF',
     paddingVertical: 14,
-    borderRadius: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    marginTop: 6
+    marginTop: 6,
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   paySubmitBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: 0.3
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   successStateBox: {
     alignItems: 'center',
-    paddingVertical: 20
+    paddingVertical: 20,
   },
   successEmoji: {
     fontSize: 48,
-    marginBottom: 10
+    marginBottom: 10,
   },
   successHeading: {
     fontSize: 18,
     fontWeight: '800',
     color: '#047857',
-    marginBottom: 4
+    marginBottom: 4,
   },
   successSub: {
     fontSize: 12,
-    color: '#64748B',
-    marginBottom: 6
+    color: '#425466',
+    marginBottom: 6,
   },
   txText: {
     fontSize: 11,
-    color: '#475569',
+    color: '#0A2540',
     fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   footerNote: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#8898AA',
     textAlign: 'center',
-    marginTop: 12
-  }
+    marginTop: 12,
+  },
 });

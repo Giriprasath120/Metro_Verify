@@ -306,11 +306,11 @@ export const MyInstrumentsScreen: React.FC<MyInstrumentsScreenProps> = ({
                     onPress={() => navigation.navigate('Passport', { instrument: inst })}
                     activeOpacity={0.85}
                   >
-                    {/* Executive Gov-Tech Accent Strip */}
+                    {/* Stripe Accent Strip */}
                     <View style={styles.cardTricolor}>
-                      <View style={[styles.cardTriBand, { backgroundColor: '#D4AF37' }]} />
-                      <View style={[styles.cardTriBand, { backgroundColor: '#0A192F' }]} />
-                      <View style={[styles.cardTriBand, { backgroundColor: '#1E3A8A' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#635BFF' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#7A73FF' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#00D4FF' }]} />
                     </View>
 
                     {/* Header Row */}
@@ -397,11 +397,11 @@ export const MyInstrumentsScreen: React.FC<MyInstrumentsScreenProps> = ({
 
                 return (
                   <View key={bulk.id} style={styles.bulkFleetCard}>
-                    {/* Executive Gov-Tech Accent Strip */}
+                    {/* Stripe Accent Strip */}
                     <View style={styles.cardTricolor}>
-                      <View style={[styles.cardTriBand, { backgroundColor: '#D4AF37' }]} />
-                      <View style={[styles.cardTriBand, { backgroundColor: '#0A192F' }]} />
-                      <View style={[styles.cardTriBand, { backgroundColor: '#1E3A8A' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#635BFF' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#7A73FF' }]} />
+                      <View style={[styles.cardTriBand, { backgroundColor: '#00D4FF' }]} />
                     </View>
 
                     {/* Bulk Card Header */}
@@ -504,30 +504,32 @@ const styles = StyleSheet.create({
   },
   categorySwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F1F4F8',
     borderRadius: 10,
     padding: 3,
-    marginBottom: 14
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
   },
   categoryTab: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 9,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8
   },
   categoryTabActive: {
-    backgroundColor: '#0A192F',
-    shadowColor: '#0A192F',
+    backgroundColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.35,
     shadowRadius: 4,
     elevation: 3
   },
   categoryTabText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: '#475569'
+    color: '#62788D'
   },
   categoryTabTextActive: {
     color: '#FFFFFF',
@@ -539,7 +541,7 @@ const styles = StyleSheet.create({
     gap: 6
   },
   multiUnitPill: {
-    backgroundColor: Colors.accentAmber,
+    backgroundColor: '#FF7A59',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6
@@ -553,16 +555,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: 14,
-    borderWidth: 1.2,
-    borderColor: '#CBD5E1',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     height: 44,
-    shadowColor: '#0A192F',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2
+    shadowColor: 'rgba(50, 50, 93, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1
   },
   searchIcon: {
     fontSize: 15,
@@ -571,12 +573,12 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#0A2540',
     fontWeight: '500'
   },
   clearText: {
     fontSize: 15,
-    color: '#94A3B8',
+    color: '#8898AA',
     paddingHorizontal: 6
   },
   filterRow: {
@@ -590,31 +592,31 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.2,
-    borderColor: '#CBD5E1',
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.03)',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
+    shadowOpacity: 0.04,
     shadowRadius: 2,
     elevation: 1
   },
   filterChipActive: {
-    backgroundColor: '#0A192F',
-    borderColor: '#0A192F',
-    shadowColor: '#0A192F',
+    backgroundColor: '#EFF2FE',
+    borderColor: '#635BFF',
+    shadowColor: 'rgba(99, 91, 255, 0.2)',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2
   },
   filterText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569'
+    color: '#62788D'
   },
   filterTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800'
+    color: '#4B45C6',
+    fontWeight: '900'
   },
   countBanner: {
     flexDirection: 'row',
@@ -624,12 +626,12 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 11.5,
-    color: '#64748B',
+    color: '#62788D',
     fontWeight: '500'
   },
   bold: {
     fontWeight: '800',
-    color: '#0A192F'
+    color: '#0A2540'
   },
   refreshBadge: {
     backgroundColor: '#EFF6FF',
@@ -703,9 +705,9 @@ const styles = StyleSheet.create({
   idBadgeHighlight: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1.5,
-    borderColor: '#2563EB',
+    backgroundColor: '#EFF2FE',
+    borderWidth: 1,
+    borderColor: '#635BFF',
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -719,13 +721,13 @@ const styles = StyleSheet.create({
   idBadgeLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#1E40AF',
+    color: '#635BFF',
     letterSpacing: 0.5
   },
   idBadgeValue: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#1D4ED8',
+    color: '#0A2540',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     letterSpacing: 0.5
   },
@@ -739,13 +741,13 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 9,
-    color: '#64748B',
+    color: '#8898AA',
     textTransform: 'uppercase',
     fontWeight: '600'
   },
   detailLabelHighlight: {
     fontSize: 9,
-    color: '#1E3A8A',
+    color: '#0A2540',
     textTransform: 'uppercase',
     fontWeight: '800'
   },
@@ -757,7 +759,7 @@ const styles = StyleSheet.create({
   },
   detailValueDate: {
     fontSize: 12,
-    color: '#1E3A8A',
+    color: '#0A2540',
     fontWeight: '800',
     marginTop: 1
   },
@@ -772,7 +774,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9'
+    borderTopColor: '#F1F4F8'
   },
   lastVerifiedText: {
     fontSize: 11,
@@ -781,16 +783,16 @@ const styles = StyleSheet.create({
     flex: 1
   },
   twinPillMini: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#3B82F6',
+    borderColor: '#635BFF',
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: 6,
     marginLeft: 8
   },
   twinPillMiniText: {
-    color: '#1D4ED8',
+    color: '#635BFF',
     fontSize: 10.5,
     fontWeight: '700',
   },
@@ -822,14 +824,14 @@ const styles = StyleSheet.create({
   /* ================= BULK FLEET CARD STYLES ================= */
   bulkFleetCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
     elevation: 3,
     position: 'relative',
     overflow: 'hidden'
@@ -844,9 +846,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#DFE5FE',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10
@@ -860,7 +862,7 @@ const styles = StyleSheet.create({
   bulkFacilityTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: Colors.primaryNavy
+    color: '#0A2540'
   },
   batchTagRow: {
     flexDirection: 'row',
@@ -871,19 +873,19 @@ const styles = StyleSheet.create({
   batchTagCode: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.accentAmber,
+    color: '#635BFF',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace'
   },
   batchRefId: {
     fontSize: 10,
-    color: Colors.textMuted
+    color: '#8898AA'
   },
   fleetQuantityHero: {
     flexDirection: 'row',
     backgroundColor: '#F8FAFC',
     borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     padding: 12,
     alignItems: 'center',
     marginBottom: 12
@@ -896,20 +898,20 @@ const styles = StyleSheet.create({
   quantityHeroNumber: {
     fontSize: 32,
     fontWeight: '900',
-    color: Colors.primaryNavy,
+    color: '#0A2540',
     lineHeight: 36
   },
   quantityHeroUnits: {
     fontSize: 8.5,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#8898AA',
     letterSpacing: 0.5,
     marginTop: 2
   },
   quantityDivider: {
-    width: 1.5,
+    width: 1,
     height: '80%',
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#E3E8EE',
     marginRight: 14
   },
   quantityMetaCol: {
@@ -918,25 +920,25 @@ const styles = StyleSheet.create({
   categoryHeroText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: '#0A2540',
     marginBottom: 4
   },
   feeHeroText: {
     fontSize: 11,
-    color: '#475569',
+    color: '#425466',
     marginBottom: 2
   },
   feeHeroBold: {
     fontWeight: '800',
-    color: '#047857'
+    color: '#00D4FF'
   },
   dateHeroText: {
     fontSize: 11,
-    color: '#475569'
+    color: '#425466'
   },
   dateHeroBold: {
     fontWeight: '800',
-    color: '#1E3A8A'
+    color: '#635BFF'
   },
   allocBreakdownBox: {
     backgroundColor: '#F0FDF4',

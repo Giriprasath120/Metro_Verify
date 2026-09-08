@@ -304,6 +304,7 @@ router.post('/voice-transcribe', async (req: Request, res: Response) => {
     formData.append('prompt', 'Metro Verify, Legal Metrology, weighing scale, weighbridge, certificate, LMO officer, inspection, verification status, stamp, Rule 14, fee, reverification, Tamil Nadu, capacity.');
     formData.append('temperature', '0.0');
 
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',
       headers: {

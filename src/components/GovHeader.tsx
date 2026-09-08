@@ -4,6 +4,7 @@ import { Colors } from '../theme/colors';
 import { NotificationModal, AppNotification } from './NotificationModal';
 import { API_ENDPOINTS } from '../config/api';
 import { getActiveUser } from '../services/authService';
+import { navigationRef } from '../navigation/navigationService';
 
 interface GovHeaderProps {
   title: string;
@@ -50,8 +51,19 @@ export const GovHeader: React.FC<GovHeaderProps> = ({
 
   const fetchNotifications = async () => {
     try {
-      const ownerQuery = activeUser?.id ? `?ownerId=${activeUser.id}` : '';
-      const res = await fetch(`${API_ENDPOINTS.notifications}${ownerQuery}`);
+      const isOfficer = activeUser?.role === 'officer' || activeUser?.role === 'LMO' || activeUser?.role === 'GATC' ||
+        activeUser?.id?.startsWith('LMO-') || activeUser?.id?.startsWith('GATC-') ||
+        roleLabel?.toLowerCase().includes('officer') || roleLabel?.toLowerCase().includes('lmo');
+
+      let queryParam = '';
+      if (activeUser?.id) {
+        if (isOfficer) {
+          queryParam = `?officerId=${encodeURIComponent(activeUser.id)}&role=officer`;
+        } else {
+          queryParam = `?ownerId=${encodeURIComponent(activeUser.id)}`;
+        }
+      }
+      const res = await fetch(`${API_ENDPOINTS.notifications}${queryParam}`);
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.notifications) && data.notifications.length > 0) {
@@ -84,10 +96,13 @@ export const GovHeader: React.FC<GovHeaderProps> = ({
         </View>
       </View>
 
-      {/* Executive Gov-Tech Precision Accent Ribbon */}
+      {/* Stripe Signature Multi-Color Gradient Swoosh Ribbon */}
       <View style={styles.topExecutiveAccent}>
-        <View style={styles.executiveAccentGold} />
-        <View style={styles.executiveAccentCyan} />
+        <View style={[styles.gradientBar, { backgroundColor: '#FF5E5B', flex: 1.5 }]} />
+        <View style={[styles.gradientBar, { backgroundColor: '#FF7A59', flex: 1.5 }]} />
+        <View style={[styles.gradientBar, { backgroundColor: '#EA4C89', flex: 2 }]} />
+        <View style={[styles.gradientBar, { backgroundColor: '#635BFF', flex: 3 }]} />
+        <View style={[styles.gradientBar, { backgroundColor: '#00D4FF', flex: 2 }]} />
       </View>
 
       <View style={styles.content}>
@@ -156,6 +171,36 @@ export const GovHeader: React.FC<GovHeaderProps> = ({
         visible={showNotifs}
         notifications={notifications}
         onClose={() => setShowNotifs(false)}
+        onSelectAction={(actionUrl, notif) => {
+          setShowNotifs(false);
+          try {
+            if (navigationRef && navigationRef.isReady && navigationRef.isReady()) {
+              if (notif?.instrumentId || actionUrl === 'MyInstruments' || actionUrl === 'Passport') {
+                navigationRef.navigate('Instruments', {
+                  screen: 'Passport',
+                  params: {
+                    instrument: {
+                      id: notif?.instrumentId || 'INST-TS-01',
+                      model: notif?.title ? notif.title.replace(/^[^\w]+/, '').trim() : 'Legal Metrology Instrument',
+                    },
+                  },
+                });
+              } else if (actionUrl === 'Certificates') {
+                navigationRef.navigate('Certificates');
+              } else if (actionUrl === 'NewRequest') {
+                navigationRef.navigate('NewRequest');
+              } else if (actionUrl === 'Schedule') {
+                navigationRef.navigate('Schedule');
+              } else if (actionUrl === 'Dashboard') {
+                navigationRef.navigate('Dashboard');
+              } else {
+                navigationRef.navigate(actionUrl as any);
+              }
+            }
+          } catch (navErr) {
+            console.warn('Notification navigation error:', navErr);
+          }
+        }}
       />
     </View>
   );
@@ -163,216 +208,208 @@ export const GovHeader: React.FC<GovHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#050E1A',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(212, 175, 55, 0.25)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 8
+    borderBottomColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.08)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   apexGovBar: {
-    backgroundColor: '#030811',
-    paddingHorizontal: 16,
+    backgroundColor: '#FAFCFD',
+    paddingHorizontal: 20,
     paddingVertical: 5,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: 0.5,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)'
+    borderBottomWidth: 1,
+    borderBottomColor: '#EDF2F7',
   },
   apexLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8
+    gap: 8,
   },
   apexFlag: {
-    fontSize: 12
+    fontSize: 12,
   },
   apexGovText: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#94A3B8',
-    letterSpacing: 0.6
+    color: '#62788D',
+    letterSpacing: 0.6,
   },
   apexRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
   },
   apexMotto: {
     fontSize: 9.5,
     fontWeight: '800',
-    color: '#E2E8F0',
-    letterSpacing: 0.8
+    color: '#425466',
+    letterSpacing: 0.8,
   },
   topExecutiveAccent: {
     flexDirection: 'row',
-    height: 2.5,
+    height: 3,
     width: '100%',
-    backgroundColor: 'rgba(2, 132, 199, 0.4)'
   },
-  executiveAccentGold: {
-    flex: 3,
+  gradientBar: {
     height: '100%',
-    backgroundColor: '#D4AF37'
-  },
-  executiveAccentCyan: {
-    flex: 2,
-    height: '100%',
-    backgroundColor: '#00F0FF'
   },
   content: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 12 : 14,
     paddingBottom: 14,
-    backgroundColor: '#0A192F'
+    backgroundColor: '#FFFFFF',
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
   emblemBadge: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 10,
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    backgroundColor: '#EFF2FE',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
-    borderWidth: 1.5,
-    borderColor: 'rgba(212, 175, 55, 0.45)',
-    position: 'relative'
+    borderWidth: 1,
+    borderColor: '#D8DEFE',
+    position: 'relative',
   },
   emblemGlow: {
-    position: 'absolute',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(212, 175, 55, 0.1)',
-    zIndex: -1
+    display: 'none',
   },
   emblemSymbol: {
-    fontSize: 22
+    fontSize: 20,
   },
   titleArea: {
-    flex: 1
+    flex: 1,
   },
   headerTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-    gap: 8
+    gap: 8,
   },
   brandName: {
-    color: '#FFFFFF',
-    fontSize: 17,
+    color: '#0A2540',
+    fontSize: 18,
     fontWeight: '900',
-    letterSpacing: 1.2
+    letterSpacing: 0.8,
   },
   brandNameGold: {
-    color: '#D4AF37',
-    fontWeight: '900'
+    color: '#635BFF',
+    fontWeight: '900',
   },
   roleChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(234, 88, 12, 0.18)',
+    backgroundColor: '#EFF2FE',
     borderWidth: 1,
-    borderColor: 'rgba(249, 115, 22, 0.5)',
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
+    borderColor: '#D8DEFE',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
     borderRadius: 12,
-    gap: 4
+    gap: 5,
   },
   roleDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
-    backgroundColor: '#F97316'
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#635BFF',
   },
   roleChipText: {
-    color: '#FED7AA',
-    fontSize: 9.5,
+    color: '#4B45C6',
+    fontSize: 10,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.6
+    letterSpacing: 0.5,
   },
   subtitle: {
-    color: 'rgba(203, 213, 225, 0.85)',
-    fontSize: 11,
+    color: '#62788D',
+    fontSize: 11.5,
     marginTop: 2,
-    fontWeight: '500'
+    fontWeight: '500',
   },
   switchButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 11,
-    paddingVertical: 6,
+    backgroundColor: '#F6F9FC',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.18)',
-    gap: 5
+    borderColor: '#E3E8EE',
+    gap: 5,
   },
   switchButtonIcon: {
-    color: '#D4AF37',
-    fontSize: 12,
-    fontWeight: '800'
+    color: '#635BFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   switchButtonText: {
-    color: '#FFFFFF',
-    fontSize: 11,
+    color: '#0A2540',
+    fontSize: 11.5,
     fontWeight: '700',
-    letterSpacing: 0.2
+    letterSpacing: 0.2,
   },
   screenTitleRow: {
     marginTop: 12,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: '#EDF2F7',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8
+    gap: 8,
   },
   screenTitleAccentBar: {
-    width: 3,
+    width: 3.5,
     height: 16,
-    borderRadius: 1.5,
-    backgroundColor: '#D4AF37'
+    borderRadius: 2,
+    backgroundColor: '#635BFF',
   },
   screenTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
+    color: '#0A2540',
+    fontSize: 16.5,
     fontWeight: '800',
-    letterSpacing: 0.4
+    letterSpacing: 0.3,
   },
   notifBellBtn: {
     width: 36,
     height: 36,
     borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(212, 175, 55, 0.4)',
+    borderColor: '#E3E8EE',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    shadowColor: 'rgba(50, 50, 93, 0.05)',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   notifBadge: {
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#635BFF',
     borderRadius: 8,
     minWidth: 16,
     height: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1,
-    borderColor: '#050E1A',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
   notifBadgeText: {
     color: '#FFFFFF',

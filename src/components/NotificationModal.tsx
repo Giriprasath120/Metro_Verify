@@ -10,7 +10,7 @@ import {
 
 export interface AppNotification {
   id: string;
-  type: 'EXPIRY' | 'WARNING' | 'ENDORSEMENT' | 'SYSTEM' | 'DOWNLOAD';
+  type: 'EXPIRY' | 'WARNING' | 'ENDORSEMENT' | 'SYSTEM' | 'DOWNLOAD' | 'ALLOCATION';
   level: 'CRITICAL' | 'WARNING' | 'INFO' | 'SUCCESS';
   title: string;
   message: string;
@@ -18,13 +18,18 @@ export interface AppNotification {
   read?: boolean;
   actionUrl?: string;
   actionText?: string;
+  instrumentId?: string;
+  applicationId?: string;
+  officerName?: string;
+  officerContact?: string;
+  officerBadge?: string;
 }
 
 interface NotificationModalProps {
   visible: boolean;
   notifications: AppNotification[];
   onClose: () => void;
-  onSelectAction?: (actionUrl: string) => void;
+  onSelectAction?: (actionUrl: string, notification?: AppNotification) => void;
   onClearAll?: () => void;
 }
 
@@ -127,7 +132,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                       onPress={() => {
                         onClose();
                         if (onSelectAction && n.actionUrl) {
-                          onSelectAction(n.actionUrl);
+                          onSelectAction(n.actionUrl, n);
                         }
                       }}
                     >
@@ -141,7 +146,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
           {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Government of Tamil Nadu • Legal Metrology</Text>
+            <Text style={styles.footerText}>Government of India • Directorate of Legal Metrology</Text>
             <TouchableOpacity onPress={onClose} style={styles.doneBtn}>
               <Text style={styles.doneBtnText}>Close</Text>
             </TouchableOpacity>
@@ -155,23 +160,25 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(5, 14, 26, 0.75)',
+    backgroundColor: 'rgba(10, 37, 64, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   modalCard: {
+    width: '100%',
+    maxWidth: 500,
+    maxHeight: '85%',
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    maxWidth: 520,
-    width: '100%',
-    maxHeight: '82%',
     overflow: 'hidden',
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.2)',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOpacity: 1,
+    shadowRadius: 24,
+    elevation: 6,
   },
   header: {
     flexDirection: 'row',
@@ -180,8 +187,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderBottomColor: '#E3E8EE',
+    backgroundColor: '#FFFFFF',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -189,35 +196,37 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   bellIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: '#EFF6FF',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EFF2FE',
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0A192F',
+    color: '#0A2540',
   },
   subtitle: {
-    fontSize: 11,
-    color: '#64748B',
+    fontSize: 11.5,
+    color: '#425466',
     marginTop: 1,
   },
   closeBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#F6F9FC',
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     alignItems: 'center',
     justifyContent: 'center',
   },
   closeText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#475569',
+    color: '#425466',
   },
   listContainer: {
     padding: 16,
@@ -231,27 +240,29 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#0A2540',
     marginBottom: 4,
   },
   emptySub: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#425466',
     textAlign: 'center',
   },
   notifItem: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.2,
+    borderWidth: 1,
+    borderColor: '#E3E8EE',
     borderRadius: 12,
     padding: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowColor: 'rgba(50, 50, 93, 0.05)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   unreadItem: {
-    backgroundColor: '#FAFCFF',
+    backgroundColor: '#FAF5FF',
+    borderColor: 'rgba(99, 91, 255, 0.25)',
   },
   itemHeader: {
     flexDirection: 'row',
@@ -265,7 +276,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 6,
   },
   badgeText: {
@@ -275,58 +286,62 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#8898AA',
     fontWeight: '500',
   },
   notifTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#0A2540',
     marginBottom: 4,
   },
   notifMessage: {
     fontSize: 12,
-    color: '#475569',
-    lineHeight: 17,
+    color: '#425466',
+    lineHeight: 18,
     marginBottom: 8,
   },
   actionBtn: {
     alignSelf: 'flex-start',
-    backgroundColor: '#0A192F',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    backgroundColor: '#635BFF',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
     marginTop: 4,
+    shadowColor: 'rgba(99, 91, 255, 0.35)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
   },
   actionBtnText: {
     color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 11.5,
+    fontWeight: '800',
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderTopColor: '#E3E8EE',
+    backgroundColor: '#F6F9FC',
   },
   footerText: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: 11.5,
+    color: '#8898AA',
     fontWeight: '600',
   },
   doneBtn: {
     paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#E2E8F0',
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#635BFF',
   },
   doneBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#334155',
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

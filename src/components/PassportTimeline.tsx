@@ -140,16 +140,16 @@ export const PassportTimeline: React.FC<PassportTimelineProps> = ({ nodes }) => 
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 8
+    paddingVertical: 8,
   },
   nodeRow: {
     flexDirection: 'row',
-    marginBottom: 16
+    marginBottom: 16,
   },
   leftColumn: {
     alignItems: 'center',
     width: 44,
-    marginRight: 10
+    marginRight: 12,
   },
   nodeCircle: {
     width: 36,
@@ -158,101 +158,101 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    zIndex: 2
+    zIndex: 2,
   },
   nodeCompleted: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#059669'
+    backgroundColor: '#EFF2FE',
+    borderColor: '#635BFF',
   },
   nodePending: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#94A3B8'
+    backgroundColor: '#F6F9FC',
+    borderColor: '#E3E8EE',
   },
   nodeIconText: {
-    fontSize: 16
+    fontSize: 16,
   },
   verticalLine: {
     width: 2,
     flex: 1,
     marginTop: 4,
-    marginBottom: -4
+    marginBottom: -4,
   },
   lineCompleted: {
-    backgroundColor: '#059669'
+    backgroundColor: '#635BFF',
   },
   linePending: {
-    backgroundColor: '#CBD5E1'
+    backgroundColor: '#E3E8EE',
   },
   rightCard: {
     flex: 1,
-    backgroundColor: Colors.surface,
-    padding: 12,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1
+    borderColor: '#E3E8EE',
+    shadowColor: 'rgba(50, 50, 93, 0.05)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    elevation: 2,
   },
   cardPending: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#E2E8F0'
+    backgroundColor: '#F6F9FC',
+    borderColor: '#E3E8EE',
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4
+    marginBottom: 4,
   },
   stageTitle: {
     fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary
+    fontWeight: '800',
+    color: '#0A2540',
   },
   statusPill: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   statusPillDone: {
-    backgroundColor: '#ECFDF5'
+    backgroundColor: '#EFF2FE',
   },
   statusPillPending: {
-    backgroundColor: '#F1F5F9'
+    backgroundColor: '#F6F9FC',
   },
   statusPillText: {
-    fontSize: 9,
-    fontWeight: '800'
+    fontSize: 9.5,
+    fontWeight: '800',
   },
   textDone: {
-    color: '#059669'
+    color: '#635BFF',
   },
   textPending: {
-    color: '#64748B'
+    color: '#8898AA',
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginVertical: 4,
-    flexWrap: 'wrap'
+    flexWrap: 'wrap',
   },
   dateText: {
     fontSize: 11,
-    color: Colors.textSecondary,
-    fontWeight: '500'
+    color: '#8898AA',
+    fontWeight: '500',
   },
   officerText: {
-    fontSize: 11,
-    color: Colors.primaryNavy,
-    fontWeight: '600'
+    fontSize: 11.5,
+    color: '#635BFF',
+    fontWeight: '700',
   },
   noteText: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: '#425466',
     marginTop: 4,
-    lineHeight: 17
-  }
+    lineHeight: 18,
+  },
 });

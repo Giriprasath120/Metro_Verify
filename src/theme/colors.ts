@@ -1,59 +1,80 @@
-// colors.ts - Government Tech Theme for Metro Verify (SIH26036) - Elegant Luxury Gov-Tech 2.0
+// colors.ts - Stripe Design System Theme for Metro Verify (SIH26036)
+// Grounded in official Stripe visual identity: Midnight Navy (#0A2540), Blurple (#635BFF), Slate (#425466), Clean Canvas (#F6F9FC), Crisp Border (#E3E8EE)
 
 export const Colors = {
-  // Primary Palette (Indian Gov Tech: Deep Executive Navy & Metallic Amber/Gold)
-  primaryNavy: '#0A192F',
-  headerNavy: '#0F2744',
-  navyDark: '#050E1A',
-  navyLight: '#1B3B6F',
-  navyAccent: '#204E8A',
+  // Stripe Primary Palette
+  stripeBlurple: '#635BFF',      // Signature Stripe Blurple CTA
+  stripeBlurpleDark: '#4B45C6',  // Hover / active dark blurple
+  stripeBlurpleLight: '#EFF2FE', // Light tint for badges & active tabs
+  stripeNavy: '#0A2540',         // Deep Stripe midnight navy for headings
+  stripeSlate: '#425466',        // Clean readable slate for body & captions
+  stripeMuted: '#8898AA',        // Secondary meta text
+  stripeCanvas: '#F6F9FC',       // Clean, modern cool canvas
+  stripeBorder: '#E3E8EE',       // Ultra-fine crisp card border
+  stripeBorderLight: '#F1F4F8',
   
-  // Executive Accent Tones (Gold, Warm Amber & Royal Sapphire)
-  accentAmber: '#EA580C',      // Vibrant Indian saffron/amber
-  accentOrange: '#F97316',
-  accentGold: '#D4AF37',       // Metallic luxury gold
-  accentGoldLight: '#FDE68A',
-  accentGoldMuted: '#92400E',
-  accentRoyalBlue: '#2563EB',
+  // Stripe Gradient Swoosh & Accent Colors (from hero graphic)
+  gradientCoral: '#FF5E5B',
+  gradientOrange: '#FF7A59',
+  gradientMagenta: '#EA4C89',
+  gradientPurple: '#635BFF',
+  gradientCyan: '#00D4FF',
+  gradientBlue: '#0073E6',
+  stripeRibbon: ['#FF5E5B', '#FF7A59', '#EA4C89', '#635BFF', '#00D4FF'] as const,
+
+  // Primary Theme Aliases (Mapped to Stripe Palette for 100% backward compatibility)
+  primaryNavy: '#0A2540',
+  headerNavy: '#0A2540',
+  navyDark: '#071A2E',
+  navyLight: '#1B3B6F',
+  navyAccent: '#635BFF',
+  
+  // Accents
+  accentAmber: '#635BFF',        // Shifted to Stripe Blurple for modern elegance
+  accentOrange: '#FF7A59',
+  accentGold: '#635BFF',         // Modern Blurple accent
+  accentGoldLight: '#EFF2FE',
+  accentGoldMuted: '#4B45C6',
+  accentRoyalBlue: '#635BFF',
   accentEmerald: '#059669',
-  accentRuby: '#DC2626',
+  accentRuby: '#DF1B41',
   
   // Backgrounds & Glass Surfaces
-  background: '#F1F5F9',       // Clean, modern cool slate canvas
-  backgroundDark: '#07162C',
+  background: '#F6F9FC',         // Stripe signature light canvas
+  backgroundDark: '#0A2540',
   surface: '#FFFFFF',
-  surfaceSubtle: '#F8FAFC',
-  surfaceGlass: 'rgba(255, 255, 255, 0.92)',
-  surfaceGlassDark: 'rgba(10, 25, 47, 0.95)',
-  surfaceCardGlass: 'rgba(255, 255, 255, 0.85)',
+  surfaceSubtle: '#FAFCFD',
+  surfaceGlass: 'rgba(255, 255, 255, 0.95)',
+  surfaceGlassDark: 'rgba(10, 37, 64, 0.95)',
+  surfaceCardGlass: '#FFFFFF',
   
   // High-End Borders
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
-  borderDark: '#CBD5E1',
-  borderGold: 'rgba(212, 175, 55, 0.35)',
-  borderGlass: 'rgba(255, 255, 255, 0.18)',
+  border: '#E3E8EE',             // Stripe standard border
+  borderLight: '#EDF2F7',
+  borderDark: '#D8DEE4',
+  borderGold: 'rgba(99, 91, 255, 0.3)',
+  borderGlass: 'rgba(227, 232, 238, 0.8)',
   
   // Typography Hierarchy
-  textPrimary: '#0F172A',
-  textSecondary: '#475569',
-  textMuted: '#94A3B8',
+  textPrimary: '#0A2540',        // Stripe Midnight Navy
+  textSecondary: '#425466',      // Stripe Slate
+  textMuted: '#8898AA',
   textWhite: '#FFFFFF',
-  textGold: '#D4AF37',
+  textGold: '#635BFF',
 
-  // Status Badges (Strictly aligned with requirements + glowing indicators)
+  // Status Badges (Stripe subtle pastel pills with crisp readable ink)
   status: {
     pending: {
-      bg: '#F1F5F9',
-      text: '#334155',
-      border: '#CBD5E1',
+      bg: '#F8FAFC',
+      text: '#425466',
+      border: '#E3E8EE',
       dot: '#94A3B8'
     },
     scheduled: {
-      bg: '#EFF6FF',
-      text: '#1D4ED8',
-      border: '#BFDBFE',
-      dot: '#3B82F6'
+      bg: '#EFF2FE',
+      text: '#4B45C6',
+      border: '#D8DEFE',
+      dot: '#635BFF'
     },
     inProgress: {
       bg: '#FFFBEB',
@@ -81,4 +102,5 @@ export const Colors = {
     }
   }
 };
+
 
